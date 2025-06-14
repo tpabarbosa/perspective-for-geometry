@@ -15,9 +15,6 @@ class HorizonLine {
         this.yAbsolute = this.yRelative * canvasHeight;
     }
 
-    // Remove the draw() method - rendering is now handled by HorizonLineRenderer
-
-    // ... keep all the dragging methods (isPointInDragArea, startDrag, etc.)
 
     // Legacy method - keep for backward compatibility but mark as deprecated
     isNearLine(mouseY, tolerance = 10) {

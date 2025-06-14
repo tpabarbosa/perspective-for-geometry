@@ -13,7 +13,7 @@ class AppState {
 
         // Triangle settings
         this.triangle = {
-            show: false,
+            show: true,
             showConstructionLines: false,
             showCircumcircle: false,
             isDraggable: true,
@@ -22,7 +22,7 @@ class AppState {
 
         // Tetrahedron settings
         this.tetrahedron = {
-            show: false,
+            show: true,
             showEdges: true,
             isDraggable: true,
             side: 'above' // 'above' or 'below'

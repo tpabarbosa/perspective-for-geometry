@@ -41,6 +41,13 @@ header p {
     border: 1px solid #ddd;
     display: flex;
     justify-content: space-evenly;
+    flex-wrap: wrap;
+    gap:40px;
+}
+
+.controls > div {
+    flex: 1;
+    min-width: 300px;
 }
 
 .control-group:not(:last-child) {
@@ -217,4 +224,26 @@ button:disabled {
 .control-row small {
     font-style: italic;
     margin-left: 5px;
+}
+
+
+#geometryCanvas {
+    display: block !important;
+    visibility: visible !important;
+    position: relative;
+    z-index: 1;
+    /* Prevent iOS Safari from hiding canvas */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Prevent touch callouts */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Prevent body scrolling when touching canvas */
+body.canvas-active {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
 }

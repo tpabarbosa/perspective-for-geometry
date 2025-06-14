@@ -1,7 +1,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Perspective Study - Geometry</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -11,6 +11,13 @@
             <h1>Perspective Study - Geometry</h1>
             <p>Interactive 3D perspective geometry visualization tool. Explore equilateral triangles and tetrahedra in perspective projection, with real-time calculation of 3D coordinates from 2D screen positions using vanishing point mathematics.</p>
         </header>
+
+        <main>
+            <canvas id="geometryCanvas" class="main-container">
+                Your browser does not support the HTML5 canvas element.
+            </canvas>
+        </main>
+
         <div class="controls">
             <div>
                 <div class="control-group">
@@ -96,11 +103,6 @@
                 </div>
             </div>
         </div>
-        <main>
-            <canvas id="geometryCanvas" class="main-container">
-                Your browser does not support the HTML5 canvas element.
-            </canvas>
-        </main>
         <footer>
             <p>&copy; 2025 Perspective Study - Geometry.</p>
         </footer>

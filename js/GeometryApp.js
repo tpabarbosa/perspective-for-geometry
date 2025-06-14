@@ -1,6 +1,5 @@
 class GeometryApp {
     constructor() {
-        // Initialize state management first
         this.state = new AppState();
 
         this.canvasManager = new CanvasManager('geometryCanvas');
@@ -14,7 +13,7 @@ class GeometryApp {
 
         this.triangle = new EquilateralTriangle(this.points[0], this.points[1], 'bottom');
         this.tetrahedron = new EquilateralTetrahedron(this.triangle);
-        this.vanishingPoint = new VanishingPoint(0.5, 0.4, 'VP', '#00ff00');
+        this.vanishingPoint = new VanishingPoint(0.8, 0.4, 'VP', '#00ff00');
 
         this.perspectiveCamera = new PerspectiveCamera(
             800, 600, this.horizonLine, this.vanishingPoint
@@ -25,63 +24,19 @@ class GeometryApp {
 
         this.renderManager = new RenderManager(this.canvasManager.ctx);
 
-        // Initialize object settings from state
+
         this.syncAllObjectsWithState();
 
-        // Create UIController instead of Controls - UIController handles all DOM manipulation
+
         this.uiController = new UIController(this.state, this);
 
         this.setupMouseEvents();
         this.setupTouchEvents();
         this.initialize();
-        // Run math utilities test on initialization
-        this.testMathUtilities();
+
+        this.updateTriangle();
+        this.draw();
     }
-
-    // Test method to verify math utilities are working correctly
-    testMathUtilities() {
-        console.log('🧮 Testing Math Utilities...');
-
-        // Test Vector3D
-        const v1 = new Vector3D(1, 0, 0);
-        const v2 = new Vector3D(0, 1, 0);
-        const cross = v1.cross(v2);
-        console.log(`✅ Vector3D cross product: ${cross.toString()} (should be (0, 0, 1))`);
-
-        // Test GeometryUtils distance
-        const p1 = { x: 0, y: 0 };
-        const p2 = { x: 3, y: 4 };
-        const distance = GeometryUtils.distance2D(p1, p2);
-        console.log(`✅ 2D Distance: ${distance} (should be 5)`);
-
-        // Test equilateral triangle calculation
-        const triangleC = GeometryUtils.calculateEquilateralTriangle2D(
-            { x: 0, y: 0 },
-            { x: 100, y: 0 },
-            'front'
-        );
-        console.log(`✅ Equilateral triangle point C: (${triangleC.x.toFixed(1)}, ${triangleC.y.toFixed(1)})`);
-
-        // Test circumcenter calculation
-        const circumcenter = GeometryUtils.calculateCircumcenter(
-            { x: 0, y: 0 },
-            { x: 100, y: 0 },
-            triangleC
-        );
-        console.log(`✅ Circumcenter: (${circumcenter.x.toFixed(1)}, ${circumcenter.y.toFixed(1)}) r=${circumcenter.radius.toFixed(1)}`);
-
-        // Test point inside triangle
-        const isInside = GeometryUtils.isPointInsideTriangle(
-            { x: 50, y: 20 },
-            { x: 0, y: 0 },
-            { x: 100, y: 0 },
-            triangleC
-        );
-        console.log(`✅ Point inside triangle: ${isInside} (should be true)`);
-
-        console.log('🎉 Math Utilities tests completed!');
-    }
-
 
     // Combine all sync methods into one
     syncAllObjectsWithState() {
@@ -141,6 +96,15 @@ class GeometryApp {
     initialize() {
         this.resize();
         this.updateDraggableObjects();
+
+        // Force initial triangle calculation if triangle should be visible
+        if (this.state.isTriangleVisible()) {
+            // Small delay to ensure canvas is fully ready
+            setTimeout(() => {
+                this.updateTriangle();
+                this.draw();
+            }, 100);
+        }
     }
 
     updateDraggableObjects() {
@@ -353,30 +317,39 @@ class GeometryApp {
     }
 
     setupTouchEvents() {
+        // Prevent default touch behaviors that can cause canvas to disappear
         this.canvasManager.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             const touch = e.touches[0];
             const mouseEvent = new MouseEvent('mousedown', {
                 clientX: touch.clientX,
                 clientY: touch.clientY
             });
             this.canvasManager.canvas.dispatchEvent(mouseEvent);
-        });
+        }, { passive: false });
 
         this.canvasManager.canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             const touch = e.touches[0];
             const mouseEvent = new MouseEvent('mousemove', {
                 clientX: touch.clientX,
                 clientY: touch.clientY
             });
             this.canvasManager.canvas.dispatchEvent(mouseEvent);
-        });
+        }, { passive: false });
 
         this.canvasManager.canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             const mouseEvent = new MouseEvent('mouseup', {});
             this.canvasManager.canvas.dispatchEvent(mouseEvent);
+        }, { passive: false });
+
+        // Prevent context menu on long press
+        this.canvasManager.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
         });
     }
 
