@@ -23,6 +23,8 @@ class GeometryApp {
         this.draggableObjects = [];
         this.currentDraggedObject = null;
 
+        this.renderManager = new RenderManager(this.canvasManager.ctx);
+
         // Initialize object settings from state
         this.syncAllObjectsWithState();
 
@@ -139,68 +141,74 @@ class GeometryApp {
     }
 
     draw() {
-        this.canvasManager.clear();
-        this.grid.draw(this.canvasManager.ctx, this.canvasManager.canvas.width, this.canvasManager.canvas.height);
+        // Clear canvas
+        this.renderManager.clear(this.canvasManager.canvas.width, this.canvasManager.canvas.height);
 
-        // Draw horizon line
-        this.horizonLine.draw(this.canvasManager.ctx, this.canvasManager.canvas.width);
+        // Render grid
+        this.renderManager.renderGrid(this.grid, this.canvasManager.canvas.width, this.canvasManager.canvas.height);
 
-        // Draw perspective lines from points to vanishing point
-        this.drawPerspectiveLines();
+        // Render horizon line
+        this.renderManager.renderHorizonLine(this.horizonLine, this.canvasManager.canvas.width);
 
-        // Draw triangle if enabled - use state instead of direct property
+        // Render perspective lines from points to vanishing point
+        this.renderManager.renderPerspectiveLines(this.points, this.vanishingPoint);
+
+        // Render triangle if enabled
         if (this.state.isTriangleVisible()) {
-            this.triangle.draw(this.canvasManager.ctx);
+            const triangleSettings = this.state.getTriangleSettings();
+            this.renderManager.renderTriangle(
+                this.triangle,
+                triangleSettings.showConstructionLines,
+                triangleSettings.showCircumcircle
+            );
 
             // Only draw point C if it exists
             if (this.triangle.pointC) {
                 const showCoords = this.grid.snapX || this.grid.snapY;
-                this.triangle.drawPointC(this.canvasManager.ctx, showCoords);
+                this.renderManager.renderCalculatedPoint(this.triangle.pointC, showCoords);
             }
         }
 
-        // Draw tetrahedron if enabled - use state instead of direct property
+        // Render tetrahedron if enabled
         if (this.state.isTetrahedronVisible() && this.state.isTriangleVisible()) {
-            this.tetrahedron.draw(this.canvasManager.ctx);
+            const tetrahedronSettings = this.state.getTetrahedronSettings();
+            this.renderManager.renderTetrahedron(this.tetrahedron, tetrahedronSettings.showEdges);
 
             // Draw point D if it exists
             if (this.tetrahedron.pointD) {
                 const showCoords = this.grid.snapX || this.grid.snapY;
-                this.tetrahedron.drawPointD(this.canvasManager.ctx, showCoords);
+                this.renderManager.renderCalculatedPoint(this.tetrahedron.pointD, showCoords);
             }
         }
 
+        // Render points A and B
         const showCoords = this.grid.snapX || this.grid.snapY;
         this.points.forEach(point => {
-            point.draw(this.canvasManager.ctx, showCoords);
+            this.renderManager.renderPoint(point, showCoords);
         });
 
-        // Draw vanishing point
-        this.vanishingPoint.draw(this.canvasManager.ctx, showCoords);
+        // Render vanishing point
+        this.renderManager.renderVanishingPoint(this.vanishingPoint, showCoords);
 
-        // Draw drag instructions
-        this.drawDragInstructions();
+        // Render drag instructions
+        this.renderDragInstructions();
     }
 
-    drawDragInstructions() {
-        const ctx = this.canvasManager.ctx;
-        ctx.fillStyle = '#666666';
-        ctx.font = '12px Arial';
 
+    renderDragInstructions() {
         let instructions = [];
-        if (this.showTriangle) {
+        if (this.state.isTriangleVisible()) {
             instructions.push('• Click inside triangle to drag it');
         }
-        if (this.showTetrahedron) {
+        if (this.state.isTetrahedronVisible()) {
             instructions.push('• Click near tetrahedron edges to drag it');
         }
         instructions.push('• Drag points A, B, VP individually');
         instructions.push('• Drag horizon line up/down');
 
-        instructions.forEach((instruction, index) => {
-            ctx.fillText(instruction, 10, this.canvasManager.canvas.height - 80 + (index * 15));
-        });
+        this.renderManager.renderDragInstructions(instructions, this.canvasManager.canvas.height);
     }
+
 
     getPointUnderMouse(mousePos) {
         // Don't allow selecting triangle point C or tetrahedron point D individually

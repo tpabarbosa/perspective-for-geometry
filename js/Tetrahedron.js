@@ -96,76 +96,6 @@ class EquilateralTetrahedron {
         return this.pointD;
     }
 
-    draw(ctx) {
-        if (!this.pointD || !this.triangle.pointC) return;
-
-        if (this.showEdges) {
-            this.drawTetrahedronEdges(ctx);
-        }
-    }
-
-    drawTetrahedronEdges(ctx) {
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = this.lineWidth;
-        ctx.setLineDash([]);
-
-        const A = this.triangle.pointA;
-        const B = this.triangle.pointB;
-        const C = this.triangle.pointC;
-        const D = this.pointD;
-
-        // Draw edges from D to A, B, C
-        ctx.beginPath();
-
-        // Edge DA
-        ctx.moveTo(D.absoluteX, D.absoluteY);
-        ctx.lineTo(A.absoluteX, A.absoluteY);
-
-        // Edge DB
-        ctx.moveTo(D.absoluteX, D.absoluteY);
-        ctx.lineTo(B.absoluteX, B.absoluteY);
-
-        // Edge DC
-        ctx.moveTo(D.absoluteX, D.absoluteY);
-        ctx.lineTo(C.absoluteX, C.absoluteY);
-
-        ctx.stroke();
-    }
-
-    drawPointD(ctx, showCoordinates = false) {
-        if (!this.pointD) return;
-
-        // Draw point D with special styling (not draggable individually)
-        ctx.beginPath();
-        ctx.arc(this.pointD.absoluteX, this.pointD.absoluteY, this.pointD.radius, 0, 2 * Math.PI);
-
-        ctx.fillStyle = this.pointD.color;
-        ctx.fill();
-
-        // Add a border pattern to indicate it's not draggable individually
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([3, 3]); // Dashed border
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Draw label with indication it's calculated
-        ctx.fillStyle = '#000000';
-        ctx.font = '16px Arial';
-        ctx.fillText(this.pointD.label + ' (calc)', this.pointD.absoluteX + 10, this.pointD.absoluteY - 10);
-
-        // Show coordinates when requested
-        if (showCoordinates) {
-            ctx.fillStyle = '#666666';
-            ctx.font = '12px Arial';
-            ctx.fillText(
-                `(${Math.round(this.pointD.absoluteX)}, ${Math.round(this.pointD.absoluteY)})`,
-                this.pointD.absoluteX + 10,
-                this.pointD.absoluteY + 20
-            );
-        }
-    }
-
     get3DEdgeLengths() {
         if (!this.triangle.point3DA || !this.triangle.point3DB ||
             !this.triangle.point3DC || !this.point3DD) return null;
@@ -309,49 +239,7 @@ class EquilateralTetrahedron {
         return this.isDraggable ? 'grab' : 'not-allowed';
     }
 
-    // Enhanced draw method with drag indicator
-    draw(ctx) {
-        if (!this.pointD || !this.triangle.pointC) return;
 
-        // Draw drag indicator when being dragged (behind edges)
-        if (this.isBeingDragged) {
-            this.drawDragIndicator(ctx);
-        }
 
-        if (this.showEdges) {
-            this.drawTetrahedronEdges(ctx);
-        }
-    }
 
-    // Enhanced drag indicator
-    drawDragIndicator(ctx) {
-        if (!this.pointD) return;
-
-        // Highlight the tetrahedron edges when dragging
-        ctx.strokeStyle = 'rgba(255, 102, 0, 0.6)'; // More visible when dragging
-        ctx.lineWidth = this.lineWidth + 2;
-        ctx.setLineDash([8, 4]); // Longer dashes for better visibility
-
-        const A = this.triangle.pointA;
-        const B = this.triangle.pointB;
-        const C = this.triangle.pointC;
-        const D = this.pointD;
-
-        ctx.beginPath();
-        ctx.moveTo(D.absoluteX, D.absoluteY);
-        ctx.lineTo(A.absoluteX, A.absoluteY);
-        ctx.moveTo(D.absoluteX, D.absoluteY);
-        ctx.lineTo(B.absoluteX, B.absoluteY);
-        ctx.moveTo(D.absoluteX, D.absoluteY);
-        ctx.lineTo(C.absoluteX, C.absoluteY);
-        ctx.stroke();
-
-        ctx.setLineDash([]);
-
-        // Draw a subtle highlight around point D
-        ctx.fillStyle = 'rgba(255, 102, 0, 0.2)';
-        ctx.beginPath();
-        ctx.arc(D.absoluteX, D.absoluteY, this.pointD.radius + 5, 0, 2 * Math.PI);
-        ctx.fill();
-    }
 }

@@ -30,6 +30,13 @@ async function initializeApp() {
             'js/PerspectiveCamera.js',
             'js/Triangle.js',
             'js/Tetrahedron.js',
+            'js/renderers/BaseRenderer.js',
+            'js/renderers/PointRenderer.js',
+            'js/renderers/GridRenderer.js',
+            'js/renderers/HorizonLineRenderer.js',
+            'js/renderers/TriangleRenderer.js',
+            'js/renderers/TetrahedronRenderer.js',
+            'js/renderers/RenderManager.js',
             'js/GeometryApp.js'
         ];
 

@@ -15,29 +15,9 @@ class HorizonLine {
         this.yAbsolute = this.yRelative * canvasHeight;
     }
 
-    draw(ctx, canvasWidth) {
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = this.lineWidth;
+    // Remove the draw() method - rendering is now handled by HorizonLineRenderer
 
-        if (this.isDashed) {
-            ctx.setLineDash([10, 5]);
-        } else {
-            ctx.setLineDash([]);
-        }
-
-        ctx.beginPath();
-        ctx.moveTo(0, this.yAbsolute);
-        ctx.lineTo(canvasWidth, this.yAbsolute);
-        ctx.stroke();
-
-        // Reset line dash
-        ctx.setLineDash([]);
-
-        // Draw label
-        ctx.fillStyle = this.color;
-        ctx.font = '14px Arial';
-        ctx.fillText('Horizon Line', 10, this.yAbsolute - 10);
-    }
+    // ... keep all the dragging methods (isPointInDragArea, startDrag, etc.)
 
     // Legacy method - keep for backward compatibility but mark as deprecated
     isNearLine(mouseY, tolerance = 10) {
@@ -46,7 +26,6 @@ class HorizonLine {
 
     // Standard Draggable Interface Implementation
     isPointInDragArea(mouseX, mouseY, tolerance = 10) {
-        // For horizon line, we only care about Y distance (it's a horizontal line)
         return Math.abs(mouseY - this.yAbsolute) <= tolerance;
     }
 
@@ -54,7 +33,7 @@ class HorizonLine {
         if (this.isPointInDragArea(mouseX, mouseY)) {
             this.isBeingDragged = true;
             this.dragOffset = {
-                x: 0, // X offset not needed for horizontal line
+                x: 0,
                 y: mouseY - this.yAbsolute
             };
             return true;
@@ -78,7 +57,10 @@ class HorizonLine {
         return this.isBeingDragged;
     }
 
-    // Enhanced setPosition method to handle grid snapping
+    getCursorType() {
+        return 'ns-resize';
+    }
+
     setPosition(y, canvasHeight, grid = null) {
         // Apply grid snapping if grid is provided and Y snapping is enabled
         if (grid && grid.snapY) {
@@ -89,9 +71,5 @@ class HorizonLine {
         this.yAbsolute = Math.max(20, Math.min(canvasHeight - 20, y));
         this.yRelative = this.yAbsolute / canvasHeight;
     }
-
-    // Convenience method to get cursor type for this draggable
-    getCursorType() {
-        return 'ns-resize'; // North-south resize cursor for horizontal line
-    }
 }
+

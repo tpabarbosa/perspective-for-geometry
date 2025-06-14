@@ -23,31 +23,7 @@ class Point {
         this.y = this.absoluteY / canvasHeight;
     }
 
-    draw(ctx, showCoordinates = false) {
-        ctx.beginPath();
-        ctx.arc(this.absoluteX, this.absoluteY, this.radius, 0, 2 * Math.PI);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Draw label
-        ctx.fillStyle = '#000000';
-        ctx.font = '16px Arial';
-        ctx.fillText(this.label, this.absoluteX + 10, this.absoluteY - 10);
-
-        // Show coordinates when requested
-        if (showCoordinates) {
-            ctx.fillStyle = '#666666';
-            ctx.font = '12px Arial';
-            ctx.fillText(
-                `(${Math.round(this.absoluteX)}, ${Math.round(this.absoluteY)})`,
-                this.absoluteX + 10,
-                this.absoluteY + 20
-            );
-        }
-    }
+    // Remove the draw() method - rendering is now handled by PointRenderer
 
     // Legacy method - keep for backward compatibility but mark as deprecated
     isPointInside(x, y, tolerance = 5) {
@@ -93,7 +69,10 @@ class Point {
         return this.isBeingDragged;
     }
 
-    // Keep existing setPosition method - used internally by drag()
+    getCursorType() {
+        return 'grab';
+    }
+
     setPosition(x, y, canvasWidth, canvasHeight, gridSettings) {
         // Apply grid snapping
         if (gridSettings.snapX) {
@@ -119,32 +98,7 @@ class VanishingPoint extends Point {
         this.isVanishingPoint = true;
     }
 
-    draw(ctx, showCoordinates = false) {
-        // Draw a square instead of circle for vanishing point
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.absoluteX - this.radius, this.absoluteY - this.radius,
-                     this.radius * 2, this.radius * 2);
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(this.absoluteX - this.radius, this.absoluteY - this.radius,
-                       this.radius * 2, this.radius * 2);
-
-        // Draw label
-        ctx.fillStyle = '#000000';
-        ctx.font = '16px Arial';
-        ctx.fillText(this.label, this.absoluteX + 12, this.absoluteY - 12);
-
-        // Show coordinates when requested
-        if (showCoordinates) {
-            ctx.fillStyle = '#666666';
-            ctx.font = '12px Arial';
-            ctx.fillText(
-                `(${Math.round(this.absoluteX)}, ${Math.round(this.absoluteY)})`,
-                this.absoluteX + 12,
-                this.absoluteY + 25
-            );
-        }
-    }
+    // Remove the draw() method - rendering is now handled by VanishingPointRenderer
 
     // Override drag method to handle vanishing point constraints
     drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
@@ -176,4 +130,5 @@ class VanishingPoint extends Point {
         this.updateRelativePosition(canvasWidth, canvasHeight);
     }
 }
+
 
