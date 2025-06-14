@@ -1,159 +1,162 @@
 # Perspective Study - Geometry
 
-An interactive web application for studying perspective geometry through hands-on manipulation of equilateral triangles and tetrahedra in 3D space.
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://tpabarbosa.github.io/perspective-for-geometry/)
+[![GitHub Pages](https://img.shields.io/badge/GitHub-Pages-blue)](https://tpabarbosa.github.io/perspective-for-geometry/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Overview
+> Interactive geometry tool for learning perspective drawing principles
 
-This tool demonstrates the mathematical relationship between 2D screen coordinates and 3D world space using perspective projection. Users can drag points to create and manipulate equilateral triangles and tetrahedra while observing how they maintain their geometric properties in perspective view.
+## 🎯 [Try it Live!](https://tpabarbosa.github.io/perspective-for-geometry/)
 
-## Features
+![Screenshot](screenshot.png)
 
-### Core Geometry
-- **Interactive Points**: Drag points A and B to define triangle base
-- **Equilateral Triangles**: Automatically calculated third vertex (C) maintains equilateral properties in 3D space
-- **Tetrahedra**: Fourth vertex (D) creates regular tetrahedron above/below triangle base
-- **Real-time 3D Calculations**: All coordinates computed in true 3D space and projected to screen
+Learn perspective drawing through interactive geometry. Drag points to create equilateral triangles and tetrahedra that maintain their 3D proportions in perspective view, complete with construction lines and mathematical verification.
 
-### Perspective System
-- **Horizon Line**: Adjustable horizon with vanishing point
-- **Perspective Camera**: Simulates realistic perspective projection
-- **Grid System**: Optional grid with snapping for precise positioning
-- **Coordinate Display**: Shows both screen and 3D world coordinates
+## ✨ Features
 
-### Visual Aids
-- **Construction Lines**: Perpendicular bisectors, altitudes, and midpoints
-- **Circumcircle**: Shows circumscribed circle of triangles
-- **Edge Highlighting**: Visual feedback during dragging operations
-- **Measurement Display**: Real-time side lengths and edge measurements
+- 🎨 **Interactive Canvas** - Drag points, triangles, and geometric shapes
+- 📐 **Perspective Geometry** - Real-time equilateral triangle construction in perspective
+- 🎲 **3D Visualization** - Tetrahedron with proper perspective projection
+- 🔢 **Mathematical Verification** - Live distance calculations and validation
+- 📏 **Construction Lines** - Show geometric construction and circumcircles
+- 📱 **Mobile Friendly** - Touch support for tablets and phones
+- ⚙️ **Customizable** - Grid snapping, coordinate display, and visual options
+- ⌨️ **Keyboard Shortcuts** - Quick access to common functions
 
-### Interactive Controls
-- **Draggable Objects**: Points, triangles, tetrahedra, and horizon line
-- **Keyboard Shortcuts**: Quick access to common functions
-- **Toggle Options**: Show/hide various geometric elements
-- **Responsive Design**: Works on desktop and touch devices
+## 🚀 Quick Start
 
-## Usage
+**[Open Live Demo](https://tpabarbosa.github.io/perspective-for-geometry/)** or run locally:
 
-### Basic Operation
-1. **Move Points**: Drag points A, B, or the vanishing point (VP)
-2. **Enable Triangle**: Check "Show Triangle" to see equilateral triangle
-3. **Enable Tetrahedron**: Check "Show Tetrahedron" to add fourth vertex
-4. **Adjust View**: Drag horizon line up/down to change perspective
+```bash
+git clone https://github.com/tpabarbosa/perspective-for-geometry.git
+cd perspective-for-geometry
+# Open index.html in your browser or use Live Server
+```
 
-### Advanced Features
-- **Grid Snapping**: Enable X/Y grid snapping for precise positioning
-- **Construction Lines**: View geometric construction details
-- **Side Toggle**: Switch triangle/tetrahedron orientation
-- **Drag Shapes**: Enable dragging entire shapes vs. individual points
+No build process required - just open `index.html` in any modern browser!
+
+## 🎮 How to Use
+
+1. **[Open the app](https://tpabarbosa.github.io/perspective-for-geometry/)**
+2. **Drag the red and blue points (A & B)** to position your triangle base
+3. **Move the green vanishing point (VP)** to change perspective angle
+4. **Drag the horizon line** up/down to adjust eye level
+5. **Enable triangle and tetrahedron** using the checkboxes
+6. **Use controls** to show construction lines, circumcircles, and measurements
+
+### Interactive Elements
+
+- **Points A & B**: Base points of the equilateral triangle
+- **Vanishing Point (VP)**: Controls perspective convergence
+- **Horizon Line**: Adjusts viewer's eye level
+- **Triangle**: Drag the entire triangle when enabled
+- **Tetrahedron**: Drag the entire 3D shape when enabled
+
+### Controls Panel
+
+- **Grid Settings**: Snap to grid, adjust size, show coordinates
+- **Triangle Options**: Construction lines, circumcircle, dragging
+- **Tetrahedron Options**: Edge visibility, positioning, dragging
+- **Real-time Info**: Distance measurements in both 2D and 3D
 
 ### Keyboard Shortcuts
-- `G` - Toggle grid visibility
+
 - `X` - Toggle X-axis grid snapping
 - `Y` - Toggle Y-axis grid snapping
+- `G` - Toggle grid visibility
 - `C` - Toggle coordinate display
 - `+/-` - Adjust grid size
 
-## Technical Implementation
+## 📚 Educational Value
 
-### Architecture
-- **Modular Design**: Separate classes for geometry, rendering, and UI
-- **State Management**: Centralized application state with change notifications
-- **Renderer System**: Specialized renderers for different geometric elements
-- **Math Utilities**: Vector operations, perspective calculations, and geometric algorithms
+This tool demonstrates key concepts in perspective drawing and geometry:
 
-### Key Classes
-- `GeometryApp` - Main application controller
-- `PerspectiveCamera` - 3D perspective projection system
-- `EquilateralTriangle` - Triangle geometry and calculations
-- `EquilateralTetrahedron` - Tetrahedron geometry and calculations
-- `RenderManager` - Coordinates all rendering operations
+- **Perspective Projection**: How 3D objects appear on a 2D surface
+- **Vanishing Points**: How parallel lines converge in perspective
+- **Horizon Line**: The viewer's eye level and its effect on perspective
+- **Equilateral Triangles**: Maintaining equal sides in perspective view
+- **3D Geometry**: How tetrahedra project onto the picture plane
+- **Mathematical Relationships**: Distance calculations in 2D vs 3D space
 
-### Mathematical Foundation
-- **Perspective Projection**: Screen ↔ 3D world coordinate conversion
-- **Equilateral Geometry**: Maintains equal side lengths in 3D space
-- **Vector Mathematics**: 3D vector operations and transformations
-- **Geometric Algorithms**: Distance calculations, point-in-triangle tests, circumcenter computation
+Perfect for:
+- 🎨 Art students learning perspective drawing
+- 👩‍🏫 Teachers demonstrating geometric principles
+- 📐 Anyone interested in the mathematics of perspective
+- 🎓 Students studying technical drawing or computer graphics
 
-## File Structure
+## 🛠️ Technology Stack
+
+- **Frontend**: Pure JavaScript (ES6+), HTML5 Canvas, CSS3
+- **Architecture**: Modular design with separate renderers and utilities
+- **Math Engine**: Custom 3D perspective projection calculations
+- **State Management**: Centralized app state with observer pattern
+- **Rendering**: Specialized renderers for different geometric elements
+- **Deployment**: GitHub Pages (static hosting)
+
+### Project Structure
 
 ```
 js/
-├── GeometryApp.js          # Main application class
-├── AppState.js             # State management
-├── Canvas.js               # Canvas management
-├── UIController.js         # User interface controller
-├── Point.js                # Point and VanishingPoint classes
-├── Triangle.js             # EquilateralTriangle class
-├── Tetrahedron.js          # EquilateralTetrahedron class
-├── HorizonLine.js          # Horizon line implementation
-├── PerspectiveCamera.js    # 3D perspective system
-├── Grid.js                 # Grid system
-├── math/
-│   ├── Vector3D.js         # 3D vector operations
-│   ├── GeometryUtils.js    # Geometric utility functions
-│   └── PerspectiveUtils.js # Perspective projection utilities
-└── renderers/
-    ├── BaseRenderer.js     # Base renderer class
-    ├── RenderManager.js    # Rendering coordinator
-    ├── PointRenderer.js    # Point rendering
-    ├── TriangleRenderer.js # Triangle rendering
-    ├── TetrahedronRenderer.js # Tetrahedron rendering
-    ├── GridRenderer.js     # Grid rendering
-    └── HorizonLineRenderer.js # Horizon line rendering
+├── math/              # Mathematical utilities
+│   ├── Vector3D.js    # 3D vector operations
+│   ├── GeometryUtils.js # 2D/3D geometry calculations
+│   └── PerspectiveUtils.js # Perspective projection
+├── renderers/         # Rendering system
+│   ├── BaseRenderer.js
+│   ├── PointRenderer.js
+│   ├── TriangleRenderer.js
+│   └── ...
+├── AppState.js        # State management
+├── GeometryApp.js     # Main application
+└── main.js           # Entry point
 ```
 
-## Getting Started
+## 🎯 Key Features Explained
 
-1. **Clone or Download**: Get the project files
-2. **Open HTML**: Open `index.html` in a modern web browser
-3. **Start Exploring**: Drag points and enable geometric shapes
-4. **Experiment**: Try different perspective settings and view options
+### Perspective-Correct Geometry
+The app calculates true 3D coordinates and projects them onto the 2D canvas, ensuring that:
+- Triangles remain equilateral in 3D space
+- Tetrahedra maintain proper proportions
+- Distance measurements are mathematically accurate
 
-## Browser Compatibility
+### Interactive Learning
+- **Visual Feedback**: See how moving elements affects the entire construction
+- **Real-time Calculations**: Watch measurements update as you drag
+- **Construction Lines**: Understand the geometric relationships
+- **Multiple Views**: Toggle different visual aids to understand the math
 
-- **Modern Browsers**: Chrome, Firefox, Safari, Edge (latest versions)
-- **Canvas Support**: Requires HTML5 Canvas API
-- **Touch Support**: Works on tablets and touch devices
-- **Responsive**: Adapts to different screen sizes
+### Mathematical Accuracy
+- Uses proper perspective projection formulas
+- Calculates true 3D distances vs. apparent 2D distances
+- Validates geometric relationships in real-time
+- Shows circumcircles and construction geometry
 
-## Educational Applications
+## 🤝 Contributing
 
-### Geometry Students
-- Understand equilateral triangle properties
-- Visualize 3D geometric relationships
-- Explore perspective drawing concepts
+Contributions are welcome! This project is great for:
+- Adding new geometric shapes
+- Improving the mathematical calculations
+- Enhancing the user interface
+- Adding educational features
 
-### Art Students
-- Learn perspective drawing fundamentals
-- Practice vanishing point techniques
-- Understand horizon line placement
+```bash
+# Fork the repository
+git clone https://github.com/tpabarbosa/perspective-for-geometry.git
+cd perspective-for-geometry
+# Make your changes
+# Open index.html to test
+# Submit a pull request
+```
 
-### Mathematics
-- Study coordinate transformations
-- Explore 3D to 2D projection
-- Investigate geometric algorithms
 
-## Development
+## 🔗 Links
 
-### Adding Features
-1. Create new classes following the established patterns
-2. Implement the draggable interface for interactive objects
-3. Add corresponding renderers for visual elements
-4. Update the state management system as needed
-
-### Testing
-- Math utilities include built-in test functions
-- Console logging provides debugging information
-- Visual feedback helps verify geometric calculations
-
-## License
-
-This project is open source and available under the MIT License.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
+- **[Live Demo](https://tpabarbosa.github.io/perspective-for-geometry/)** - Try it now!
+- **[Source Code](https://github.com/tpabarbosa/perspective-for-geometry)** - View on GitHub
+- **[Issues](https://github.com/tpabarbosa/perspective-for-geometry/issues)** - Report bugs or request features
 
 ---
 
-**Note**: This is an educational tool designed to help understand perspective geometry concepts. While mathematically accurate, it's intended for learning rather than professional drafting applications.
+**[🎯 Launch the App →](https://tpabarbosa.github.io/perspective-for-geometry/)**
+
+*Built with ❤️ for students and educators learning perspective drawing*
