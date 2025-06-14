@@ -25,44 +25,26 @@ class EquilateralTetrahedron {
             return null;
         }
 
-        const A = this.triangle.point3DA;
-        const B = this.triangle.point3DB;
-        const C = this.triangle.point3DC;
-
-        // Calculate the centroid of triangle ABC
-        const centroidX = (A.x + B.x + C.x) / 3;
-        const centroidY = (A.y + B.y + C.y) / 3;
-        const centroidZ = (A.z + B.z + C.z) / 3;
-
-        // Calculate edge length (should be same for all edges in equilateral triangle)
-        const edgeLength = Math.sqrt(
-            Math.pow(B.x - A.x, 2) +
-            Math.pow(B.y - A.y, 2) +
-            Math.pow(B.z - A.z, 2)
+        // Calculate point D using PerspectiveUtils
+        const point3DD = PerspectiveUtils.calculateTetrahedronVertex3D(
+            this.triangle.point3DA,
+            this.triangle.point3DB,
+            this.triangle.point3DC,
+            this.side
         );
 
-        // Height of tetrahedron from base to apex
-        // For regular tetrahedron: h = edge_length * sqrt(2/3)
-        const tetrahedronHeight = edgeLength * Math.sqrt(2/3);
-
-        // Normal vector to the plane ABC (pointing up from ground plane)
-        // Since ABC is on ground plane (y = 0), normal is simply (0, 1, 0)
-        const normalX = 0;
-        const normalY = this.side === 'above' ? 1 : -1;
-        const normalZ = 0;
-
-        // Calculate point D
-        const point3DD = {
-            x: centroidX + normalX * tetrahedronHeight,
-            y: centroidY + normalY * tetrahedronHeight,
-            z: centroidZ + normalZ * tetrahedronHeight
-        };
+        if (!point3DD) {
+            this.pointD = null;
+            this.point3DD = null;
+            return null;
+        }
 
         // Project D to screen coordinates
-        const screenD = perspectiveCamera.groundPlaneToScreen(
+        const screenD = PerspectiveUtils.groundPlaneToScreen(
             point3DD.x,
             point3DD.y,
-            point3DD.z
+            point3DD.z,
+            perspectiveCamera
         );
 
         if (!screenD) {
@@ -73,8 +55,7 @@ class EquilateralTetrahedron {
         }
 
         // Check if projected point is within reasonable screen bounds
-        if (screenD.x < -200 || screenD.x > canvasWidth + 200 ||
-            screenD.y < -200 || screenD.y > canvasHeight + 200) {
+        if (!PerspectiveUtils.isProjectionReasonable(point3DD, perspectiveCamera, canvasWidth, canvasHeight)) {
             console.warn("Point D projects outside reasonable screen bounds");
             this.pointD = null;
             this.point3DD = null;
@@ -105,12 +86,12 @@ class EquilateralTetrahedron {
         const C = this.triangle.point3DC;
         const D = this.point3DD;
 
-        const ab = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2) + Math.pow(B.z - A.z, 2));
-        const bc = Math.sqrt(Math.pow(C.x - B.x, 2) + Math.pow(C.y - B.y, 2) + Math.pow(C.z - B.z, 2));
-        const ca = Math.sqrt(Math.pow(A.x - C.x, 2) + Math.pow(A.y - C.y, 2) + Math.pow(A.z - C.z, 2));
-        const da = Math.sqrt(Math.pow(A.x - D.x, 2) + Math.pow(A.y - D.y, 2) + Math.pow(A.z - D.z, 2));
-        const db = Math.sqrt(Math.pow(B.x - D.x, 2) + Math.pow(B.y - D.y, 2) + Math.pow(B.z - D.z, 2));
-        const dc = Math.sqrt(Math.pow(C.x - D.x, 2) + Math.pow(C.y - D.y, 2) + Math.pow(C.z - D.z, 2));
+        const ab = GeometryUtils.distance3D(A, B);
+        const bc = GeometryUtils.distance3D(B, C);
+        const ca = GeometryUtils.distance3D(C, A);
+        const da = GeometryUtils.distance3D(D, A);
+        const db = GeometryUtils.distance3D(D, B);
+        const dc = GeometryUtils.distance3D(D, C);
 
         return {
             ab: ab.toFixed(1),
@@ -139,7 +120,7 @@ class EquilateralTetrahedron {
         const C = this.triangle.pointC;
         const D = this.pointD;
 
-        // Check distance to edges DA, DB, DC
+        // Check distance to edges DA, DB, DC using GeometryUtils
         const edges = [
             { start: D, end: A },
             { start: D, end: B },
@@ -147,10 +128,10 @@ class EquilateralTetrahedron {
         ];
 
         for (let edge of edges) {
-            const distance = this.distanceToLineSegment(
-                mouseX, mouseY,
-                edge.start.absoluteX, edge.start.absoluteY,
-                edge.end.absoluteX, edge.end.absoluteY
+            const distance = GeometryUtils.distanceToLineSegment(
+                { x: mouseX, y: mouseY },
+                { x: edge.start.absoluteX, y: edge.start.absoluteY },
+                { x: edge.end.absoluteX, y: edge.end.absoluteY }
             );
             if (distance <= threshold) {
                 return true;
@@ -175,21 +156,29 @@ class EquilateralTetrahedron {
     }
 
     startDrag(mouseX, mouseY) {
-        if (!this.isPointInDragArea(mouseX, mouseY)) return false;
+        if (!this.isDraggable || !this.pointD) return false;
 
-        this.isBeingDragged = true;
+        if (this.isPointNearTetrahedron(mouseX, mouseY)) {
+            this.isBeingDragged = true;
 
-        // Calculate centroid of tetrahedron for drag reference
-        const centroidX = (this.triangle.pointA.absoluteX + this.triangle.pointB.absoluteX +
-                         this.triangle.pointC.absoluteX + this.pointD.absoluteX) / 4;
-        const centroidY = (this.triangle.pointA.absoluteY + this.triangle.pointB.absoluteY +
-                         this.triangle.pointC.absoluteY + this.pointD.absoluteY) / 4;
+            // Calculate centroid of tetrahedron for drag reference using GeometryUtils
+            const centroid = GeometryUtils.centroid3Points(
+                { x: this.triangle.pointA.absoluteX, y: this.triangle.pointA.absoluteY },
+                { x: this.triangle.pointB.absoluteX, y: this.triangle.pointB.absoluteY },
+                { x: this.triangle.pointC.absoluteX, y: this.triangle.pointC.absoluteY }
+            );
 
-        this.dragOffset = {
-            x: mouseX - centroidX,
-            y: mouseY - centroidY
-        };
-        return true;
+            // Include point D in centroid calculation (4 points)
+            const centroidX = (centroid.x * 3 + this.pointD.absoluteX) / 4;
+            const centroidY = (centroid.y * 3 + this.pointD.absoluteY) / 4;
+
+            this.dragOffset = {
+                x: mouseX - centroidX,
+                y: mouseY - centroidY
+            };
+            return true;
+        }
+        return false;
     }
 
     drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
@@ -199,11 +188,15 @@ class EquilateralTetrahedron {
         const newCentroidX = mouseX - this.dragOffset.x;
         const newCentroidY = mouseY - this.dragOffset.y;
 
-        // Calculate current centroid
-        const currentCentroidX = (this.triangle.pointA.absoluteX + this.triangle.pointB.absoluteX +
-                                this.triangle.pointC.absoluteX + this.pointD.absoluteX) / 4;
-        const currentCentroidY = (this.triangle.pointA.absoluteY + this.triangle.pointB.absoluteY +
-                                this.triangle.pointC.absoluteY + this.pointD.absoluteY) / 4;
+        // Calculate current centroid using GeometryUtils
+        const currentCentroid = GeometryUtils.centroid3Points(
+            { x: this.triangle.pointA.absoluteX, y: this.triangle.pointA.absoluteY },
+            { x: this.triangle.pointB.absoluteX, y: this.triangle.pointB.absoluteY },
+            { x: this.triangle.pointC.absoluteX, y: this.triangle.pointC.absoluteY }
+        );
+
+        const currentCentroidX = (currentCentroid.x * 3 + this.pointD.absoluteX) / 4;
+        const currentCentroidY = (currentCentroid.y * 3 + this.pointD.absoluteY) / 4;
 
         // Calculate offset to apply to base triangle points
         const deltaX = newCentroidX - currentCentroidX;

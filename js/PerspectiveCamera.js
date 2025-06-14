@@ -14,110 +14,57 @@ class PerspectiveCamera {
     }
 
     updateCameraParameters() {
-        // Camera position in 3D space
-        this.cameraX = this.vanishingPoint.absoluteX;
-        this.cameraY = this.eyeHeight;
-        this.cameraZ = this.focalLength;
+        // Use PerspectiveUtils to calculate camera parameters
+        const params = PerspectiveUtils.calculateCameraParameters(
+            this.horizonLine,
+            this.vanishingPoint,
+            this.focalLength,
+            this.eyeHeight
+        );
 
-        // The horizon line represents the eye level
-        this.eyeLevel = this.horizonLine.yAbsolute;
+        // Apply calculated parameters
+        this.cameraX = params.cameraX;
+        this.cameraY = params.cameraY;
+        this.cameraZ = params.cameraZ;
+        this.eyeLevel = params.eyeLevel;
+        this.groundPlaneY = params.groundPlaneY;
     }
 
     // Convert screen coordinates to 3D ground plane coordinates
     screenToGroundPlane(screenX, screenY) {
-        // Ray from camera through screen point
-        const rayDirX = screenX - this.cameraX;
-        const rayDirY = this.eyeLevel - screenY; // Flip Y axis
-        const rayDirZ = -this.focalLength;
-
-        // Find intersection with ground plane (y = groundPlaneY)
-        // Camera ray: camera + t * rayDir
-        // Ground plane: y = groundPlaneY
-        // Solve: cameraY + t * rayDirY = groundPlaneY
-
-        if (Math.abs(rayDirY) < 0.001) {
-            // Ray is parallel to ground plane
-            return null;
-        }
-
-        const t = (this.groundPlaneY - this.cameraY) / rayDirY;
-
-        if (t <= 0) {
-            // Intersection is behind camera
-            return null;
-        }
-
-        const worldX = this.cameraX + t * rayDirX;
-        const worldZ = this.cameraZ + t * rayDirZ;
-
-        return {
-            x: worldX,
-            y: this.groundPlaneY,
-            z: worldZ
-        };
+        return PerspectiveUtils.screenToGroundPlane(screenX, screenY, this);
     }
 
     // Convert 3D ground plane coordinates to screen coordinates
     groundPlaneToScreen(worldX, worldY, worldZ) {
-        // Vector from camera to world point
-        const dx = worldX - this.cameraX;
-        const dy = worldY - this.cameraY;
-        const dz = worldZ - this.cameraZ;
-
-        if (dz >= 0) {
-            // Point is behind or at camera
-            return null;
-        }
-
-        // Perspective projection
-        const screenX = this.cameraX + (dx * this.focalLength) / (-dz);
-        const screenY = this.eyeLevel - (dy * this.focalLength) / (-dz);
-
-        return {
-            x: screenX,
-            y: screenY
-        };
+        return PerspectiveUtils.groundPlaneToScreen(worldX, worldY, worldZ, this);
     }
 
     // Calculate 3D equilateral triangle on ground plane
     calculateEquilateralTriangle3D(point3DA, point3DB, side = 'front') {
-        // Vector from A to B in 3D
-        const abX = point3DB.x - point3DA.x;
-        const abZ = point3DB.z - point3DA.z;
+        return PerspectiveUtils.calculateEquilateralTriangle3D(point3DA, point3DB, side);
+    }
 
-        // Length of AB
-        const abLength = Math.sqrt(abX * abX + abZ * abZ);
+    // Get perspective scale at given depth
+    getPerspectiveScale(worldZ) {
+        return PerspectiveUtils.getPerspectiveScale(worldZ, this);
+    }
 
-        // Midpoint of AB
-        const midX = (point3DA.x + point3DB.x) / 2;
-        const midZ = (point3DA.z + point3DB.z) / 2;
+    // Convert world distance to screen distance at given depth
+    worldToScreenDistance(worldDistance, worldZ) {
+        return PerspectiveUtils.worldToScreenDistance(worldDistance, worldZ, this);
+    }
 
-        // Perpendicular vector to AB in the XZ plane (ground plane)
-        let perpX = -abZ; // Rotate 90 degrees in XZ plane
-        let perpZ = abX;
+    // Convert screen distance to world distance at given depth
+    screenToWorldDistance(screenDistance, worldZ) {
+        return PerspectiveUtils.screenToWorldDistance(screenDistance, worldZ, this);
+    }
 
-        // Normalize perpendicular vector
-        const perpLength = Math.sqrt(perpX * perpX + perpZ * perpZ);
-        perpX /= perpLength;
-        perpZ /= perpLength;
-
-        // Height of equilateral triangle
-        const height = (Math.sqrt(3) / 2) * abLength;
-
-        // Choose side (front/back relative to camera)
-        if (side === 'back') {
-            perpX = -perpX;
-            perpZ = -perpZ;
-        }
-
-        // Calculate point C in 3D
-        const point3DC = {
-            x: midX + perpX * height,
-            y: this.groundPlaneY,
-            z: midZ + perpZ * height
-        };
-
-        return point3DC;
+    // Check if projection is reasonable
+    isProjectionReasonable(worldPoint) {
+        return PerspectiveUtils.isProjectionReasonable(
+            worldPoint, this, this.canvasWidth, this.canvasHeight
+        );
     }
 
     update(canvasWidth, canvasHeight, horizonLine, vanishingPoint) {

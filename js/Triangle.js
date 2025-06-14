@@ -26,14 +26,16 @@ class EquilateralTriangle {
 
     calculateVertexC(canvasWidth, canvasHeight, vanishingPoint, perspectiveCamera) {
         // Convert screen points A and B to 3D ground plane coordinates
-        const point3DA = perspectiveCamera.screenToGroundPlane(
+        const point3DA = PerspectiveUtils.screenToGroundPlane(
             this.pointA.absoluteX,
-            this.pointA.absoluteY
+            this.pointA.absoluteY,
+            perspectiveCamera
         );
 
-        const point3DB = perspectiveCamera.screenToGroundPlane(
+        const point3DB = PerspectiveUtils.screenToGroundPlane(
             this.pointB.absoluteX,
-            this.pointB.absoluteY
+            this.pointB.absoluteY,
+            perspectiveCamera
         );
 
         if (!point3DA || !point3DB) {
@@ -46,10 +48,7 @@ class EquilateralTriangle {
         }
 
         // Check if points are too close (would create degenerate triangle)
-        const distance3D = Math.sqrt(
-            Math.pow(point3DB.x - point3DA.x, 2) +
-            Math.pow(point3DB.z - point3DA.z, 2)
-        );
+        const distance3D = GeometryUtils.distance3D(point3DA, point3DB);
 
         if (distance3D < 1) { // Minimum distance threshold
             console.warn("Points A and B are too close in 3D space");
@@ -58,17 +57,23 @@ class EquilateralTriangle {
         }
 
         // Calculate equilateral triangle in 3D space
-        const point3DC = perspectiveCamera.calculateEquilateralTriangle3D(
+        const point3DC = PerspectiveUtils.calculateEquilateralTriangle3D(
             point3DA,
             point3DB,
             this.side === 'top' ? 'front' : 'back'
         );
 
+        if (!point3DC) {
+            this.pointC = null;
+            return null;
+        }
+
         // Project 3D point C back to screen coordinates
-        const screenC = perspectiveCamera.groundPlaneToScreen(
+        const screenC = PerspectiveUtils.groundPlaneToScreen(
             point3DC.x,
             point3DC.y,
-            point3DC.z
+            point3DC.z,
+            perspectiveCamera
         );
 
         if (!screenC) {
@@ -78,8 +83,7 @@ class EquilateralTriangle {
         }
 
         // Check if projected point is within reasonable screen bounds
-        if (screenC.x < -100 || screenC.x > canvasWidth + 100 ||
-            screenC.y < -100 || screenC.y > canvasHeight + 100) {
+        if (!PerspectiveUtils.isProjectionReasonable(point3DC, perspectiveCamera, canvasWidth, canvasHeight)) {
             console.warn("Point C projects outside reasonable screen bounds");
             this.pointC = null;
             return null;
@@ -94,7 +98,7 @@ class EquilateralTriangle {
         this.pointC.absoluteY = Math.max(6, Math.min(canvasHeight - 6, screenC.y));
         this.pointC.updateRelativePosition(canvasWidth, canvasHeight);
 
-        // Store 3D coordinates for debugging
+        // Store 3D coordinates
         this.point3DA = point3DA;
         this.point3DB = point3DB;
         this.point3DC = point3DC;
@@ -106,20 +110,9 @@ class EquilateralTriangle {
     get3DSideLengths() {
         if (!this.point3DA || !this.point3DB || !this.point3DC) return null;
 
-        const ab = Math.sqrt(
-            Math.pow(this.point3DB.x - this.point3DA.x, 2) +
-            Math.pow(this.point3DB.z - this.point3DA.z, 2)
-        );
-
-        const bc = Math.sqrt(
-            Math.pow(this.point3DC.x - this.point3DB.x, 2) +
-            Math.pow(this.point3DC.z - this.point3DB.z, 2)
-        );
-
-        const ca = Math.sqrt(
-            Math.pow(this.point3DA.x - this.point3DC.x, 2) +
-            Math.pow(this.point3DA.z - this.point3DC.z, 2)
-        );
+        const ab = GeometryUtils.distance3D(this.point3DA, this.point3DB);
+        const bc = GeometryUtils.distance3D(this.point3DB, this.point3DC);
+        const ca = GeometryUtils.distance3D(this.point3DC, this.point3DA);
 
         return {
             ab: ab.toFixed(1),
@@ -168,22 +161,26 @@ class EquilateralTriangle {
     getSideLengths() {
         if (!this.pointC) return null;
 
-        const ab = Math.sqrt(
-            Math.pow(this.pointB.absoluteX - this.pointA.absoluteX, 2) +
-            Math.pow(this.pointB.absoluteY - this.pointA.absoluteY, 2)
+        const ab = GeometryUtils.distance2D(
+            { x: this.pointA.absoluteX, y: this.pointA.absoluteY },
+            { x: this.pointB.absoluteX, y: this.pointB.absoluteY }
         );
 
-        const bc = Math.sqrt(
-            Math.pow(this.pointC.absoluteX - this.pointB.absoluteX, 2) +
-            Math.pow(this.pointC.absoluteY - this.pointB.absoluteY, 2)
+        const bc = GeometryUtils.distance2D(
+            { x: this.pointB.absoluteX, y: this.pointB.absoluteY },
+            { x: this.pointC.absoluteX, y: this.pointC.absoluteY }
         );
 
-        const ca = Math.sqrt(
-            Math.pow(this.pointA.absoluteX - this.pointC.absoluteX, 2) +
-            Math.pow(this.pointA.absoluteY - this.pointC.absoluteY, 2)
+        const ca = GeometryUtils.distance2D(
+            { x: this.pointC.absoluteX, y: this.pointC.absoluteY },
+            { x: this.pointA.absoluteX, y: this.pointA.absoluteY }
         );
 
-        return { ab: ab.toFixed(1), bc: bc.toFixed(1), ca: ca.toFixed(1) };
+        return {
+            ab: ab.toFixed(1),
+            bc: bc.toFixed(1),
+            ca: ca.toFixed(1)
+        };
     }
 
     toggleSide() {
@@ -196,39 +193,34 @@ class EquilateralTriangle {
     isPointInsideTriangle(mouseX, mouseY) {
         if (!this.pointC) return false;
 
-        // Use barycentric coordinates to check if point is inside triangle
-        const A = this.pointA;
-        const B = this.pointB;
-        const C = this.pointC;
-
-        const denom = (B.absoluteY - C.absoluteY) * (A.absoluteX - C.absoluteX) +
-                     (C.absoluteX - B.absoluteX) * (A.absoluteY - C.absoluteY);
-
-        if (Math.abs(denom) < 0.001) return false; // Degenerate triangle
-
-        const a = ((B.absoluteY - C.absoluteY) * (mouseX - C.absoluteX) +
-                  (C.absoluteX - B.absoluteX) * (mouseY - C.absoluteY)) / denom;
-        const b = ((C.absoluteY - A.absoluteY) * (mouseX - C.absoluteX) +
-                  (A.absoluteX - C.absoluteX) * (mouseY - C.absoluteY)) / denom;
-        const c = 1 - a - b;
-
-        return a >= 0 && b >= 0 && c >= 0;
+        return GeometryUtils.isPointInsideTriangle(
+            { x: mouseX, y: mouseY },
+            { x: this.pointA.absoluteX, y: this.pointA.absoluteY },
+            { x: this.pointB.absoluteX, y: this.pointB.absoluteY },
+            { x: this.pointC.absoluteX, y: this.pointC.absoluteY }
+        );
     }
 
     startDrag(mouseX, mouseY) {
-        if (!this.isPointInDragArea(mouseX, mouseY)) return false;
+        if (!this.isDraggable || !this.pointC) return false;
 
-        this.isBeingDragged = true;
+        if (this.isPointInsideTriangle(mouseX, mouseY)) {
+            this.isBeingDragged = true;
 
-        // Calculate centroid of triangle for drag reference
-        const centroidX = (this.pointA.absoluteX + this.pointB.absoluteX + this.pointC.absoluteX) / 3;
-        const centroidY = (this.pointA.absoluteY + this.pointB.absoluteY + this.pointC.absoluteY) / 3;
+            // Calculate centroid of triangle for drag reference using GeometryUtils
+            const centroid = GeometryUtils.centroid3Points(
+                { x: this.pointA.absoluteX, y: this.pointA.absoluteY },
+                { x: this.pointB.absoluteX, y: this.pointB.absoluteY },
+                { x: this.pointC.absoluteX, y: this.pointC.absoluteY }
+            );
 
-        this.dragOffset = {
-            x: mouseX - centroidX,
-            y: mouseY - centroidY
-        };
-        return true;
+            this.dragOffset = {
+                x: mouseX - centroid.x,
+                y: mouseY - centroid.y
+            };
+            return true;
+        }
+        return false;
     }
 
     drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
@@ -238,13 +230,16 @@ class EquilateralTriangle {
         const newCentroidX = mouseX - this.dragOffset.x;
         const newCentroidY = mouseY - this.dragOffset.y;
 
-        // Calculate current centroid
-        const currentCentroidX = (this.pointA.absoluteX + this.pointB.absoluteX + this.pointC.absoluteX) / 3;
-        const currentCentroidY = (this.pointA.absoluteY + this.pointB.absoluteY + this.pointC.absoluteY) / 3;
+        // Calculate current centroid using GeometryUtils
+        const currentCentroid = GeometryUtils.centroid3Points(
+            { x: this.pointA.absoluteX, y: this.pointA.absoluteY },
+            { x: this.pointB.absoluteX, y: this.pointB.absoluteY },
+            { x: this.pointC.absoluteX, y: this.pointC.absoluteY }
+        );
 
         // Calculate offset to apply to all points
-        const deltaX = newCentroidX - currentCentroidX;
-        const deltaY = newCentroidY - currentCentroidY;
+        const deltaX = newCentroidX - currentCentroid.x;
+        const deltaY = newCentroidY - currentCentroid.y;
 
         // Move all points by the same offset
         this.pointA.setPosition(
@@ -264,7 +259,6 @@ class EquilateralTriangle {
 
     stopDrag() {
         this.isBeingDragged = false;
-        this.dragOffset = { x: 0, y: 0 };
     }
 
     isDragging() {

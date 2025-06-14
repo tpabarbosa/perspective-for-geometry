@@ -20,6 +20,11 @@ class JSLoader {
 async function initializeApp() {
     try {
         const scripts = [
+            // Math utilities first (no dependencies)
+            'js/math/Vector3D.js',
+            'js/math/GeometryUtils.js',
+            'js/math/PerspectiveUtils.js',
+            // Core classes
             'js/AppState.js',
             'js/Point.js',
             'js/Grid.js',
@@ -30,6 +35,7 @@ async function initializeApp() {
             'js/PerspectiveCamera.js',
             'js/Triangle.js',
             'js/Tetrahedron.js',
+            // Renderers
             'js/renderers/BaseRenderer.js',
             'js/renderers/PointRenderer.js',
             'js/renderers/GridRenderer.js',
@@ -37,6 +43,7 @@ async function initializeApp() {
             'js/renderers/TriangleRenderer.js',
             'js/renderers/TetrahedronRenderer.js',
             'js/renderers/RenderManager.js',
+            // Main application
             'js/GeometryApp.js'
         ];
 

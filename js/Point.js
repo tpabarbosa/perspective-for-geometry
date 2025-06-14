@@ -7,10 +7,28 @@ class Point {
         this.radius = radius;
         this.absoluteX = 0;
         this.absoluteY = 0;
+    }
 
-        // Drag state
+    // Standardized draggable interface method
+    isPointInDragArea(mouseX, mouseY) {
+        return this.isPointInside(mouseX, mouseY);
+    }
+
+    startDrag(mouseX, mouseY) {
+        if (this.isPointInDragArea(mouseX, mouseY)) {
+            this.isBeingDragged = true;
+            return true;
+        }
+        return false;
+    }
+
+    drag(mouseX, mouseY, canvasWidth, canvasHeight, gridSettings) {
+        if (!this.isBeingDragged) return;
+        this.setPosition(mouseX, mouseY, canvasWidth, canvasHeight, gridSettings);
+    }
+
+    stopDrag() {
         this.isBeingDragged = false;
-        this.dragOffset = { x: 0, y: 0 };
     }
 
     updateAbsolutePosition(canvasWidth, canvasHeight) {
@@ -23,54 +41,13 @@ class Point {
         this.y = this.absoluteY / canvasHeight;
     }
 
-    // Remove the draw() method - rendering is now handled by PointRenderer
-
-    // Legacy method - keep for backward compatibility but mark as deprecated
     isPointInside(x, y, tolerance = 5) {
-        return this.isPointInDragArea(x, y, tolerance);
-    }
-
-    // Standard Draggable Interface Implementation
-    isPointInDragArea(mouseX, mouseY, tolerance = 5) {
-        const distance = Math.sqrt(
-            Math.pow(mouseX - this.absoluteX, 2) +
-            Math.pow(mouseY - this.absoluteY, 2)
+        // Use GeometryUtils for distance calculation
+        const distance = GeometryUtils.distance2D(
+            { x: x, y: y },
+            { x: this.absoluteX, y: this.absoluteY }
         );
         return distance <= this.radius + tolerance;
-    }
-
-    startDrag(mouseX, mouseY) {
-        if (this.isPointInDragArea(mouseX, mouseY)) {
-            this.isBeingDragged = true;
-            this.dragOffset = {
-                x: mouseX - this.absoluteX,
-                y: mouseY - this.absoluteY
-            };
-            return true;
-        }
-        return false;
-    }
-
-    drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
-        if (!this.isBeingDragged) return;
-
-        const newX = mouseX - this.dragOffset.x;
-        const newY = mouseY - this.dragOffset.y;
-
-        this.setPosition(newX, newY, canvasWidth, canvasHeight, grid);
-    }
-
-    stopDrag() {
-        this.isBeingDragged = false;
-        this.dragOffset = { x: 0, y: 0 };
-    }
-
-    isDragging() {
-        return this.isBeingDragged;
-    }
-
-    getCursorType() {
-        return 'grab';
     }
 
     setPosition(x, y, canvasWidth, canvasHeight, gridSettings) {
@@ -82,11 +59,9 @@ class Point {
             y = Math.round(y / gridSettings.size) * gridSettings.size;
         }
 
-        // Keep within bounds
-        this.absoluteX = Math.max(this.radius,
-            Math.min(canvasWidth - this.radius, x));
-        this.absoluteY = Math.max(this.radius,
-            Math.min(canvasHeight - this.radius, y));
+        // Keep within bounds using GeometryUtils.clamp
+        this.absoluteX = GeometryUtils.clamp(x, this.radius, canvasWidth - this.radius);
+        this.absoluteY = GeometryUtils.clamp(y, this.radius, canvasHeight - this.radius);
 
         this.updateRelativePosition(canvasWidth, canvasHeight);
     }
@@ -98,20 +73,15 @@ class VanishingPoint extends Point {
         this.isVanishingPoint = true;
     }
 
-    // Remove the draw() method - rendering is now handled by VanishingPointRenderer
-
-    // Override drag method to handle vanishing point constraints
-    drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
+    // Override drag to handle horizon line constraint
+    drag(mouseX, mouseY, canvasWidth, canvasHeight, gridSettings) {
         if (!this.isBeingDragged) return;
-
-        const newX = mouseX - this.dragOffset.x;
-        // Keep the same Y position for vanishing point (it moves along horizon)
-        const currentY = this.absoluteY;
-
-        this.setPosition(newX, currentY, canvasWidth, canvasHeight, grid);
+        // Vanishing point can only move horizontally along the horizon line
+        this.setPosition(mouseX, this.absoluteY, canvasWidth, canvasHeight, gridSettings);
     }
 
-    // Override setPosition to handle vanishing point constraints
+
+
     setPosition(x, y, canvasWidth, canvasHeight, gridSettings) {
         // Vanishing point can only move horizontally along the horizon line
         // Keep the same Y position, only update X
@@ -122,13 +92,10 @@ class VanishingPoint extends Point {
             x = Math.round(x / gridSettings.size) * gridSettings.size;
         }
 
-        // Keep within bounds
-        this.absoluteX = Math.max(this.radius,
-            Math.min(canvasWidth - this.radius, x));
+        // Keep within bounds using GeometryUtils.clamp
+        this.absoluteX = GeometryUtils.clamp(x, this.radius, canvasWidth - this.radius);
         this.absoluteY = currentY; // Keep Y unchanged
 
         this.updateRelativePosition(canvasWidth, canvasHeight);
     }
 }
-
-

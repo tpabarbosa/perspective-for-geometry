@@ -2,7 +2,7 @@ class HorizonLine {
     constructor(yPosition = 0.4) { // Default at 40% from top
         this.yRelative = yPosition;
         this.yAbsolute = 0;
-        this.color = '#ff6600';
+        this.color = '#00bfff';
         this.lineWidth = 2;
         this.isDashed = true;
 

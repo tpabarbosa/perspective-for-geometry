@@ -72,23 +72,25 @@ class TriangleRenderer extends BaseRenderer {
     }
 
     renderPerpendicularBisectorConstruction(triangle) {
-        // Show the midpoint of AB
-        const midpointX = (triangle.pointA.absoluteX + triangle.pointB.absoluteX) / 2;
-        const midpointY = (triangle.pointA.absoluteY + triangle.pointB.absoluteY) / 2;
+        // Use GeometryUtils for midpoint calculation
+        const midpoint = GeometryUtils.midpoint2D(
+            { x: triangle.pointA.absoluteX, y: triangle.pointA.absoluteY },
+            { x: triangle.pointB.absoluteX, y: triangle.pointB.absoluteY }
+        );
 
         // Draw midpoint
         this.setStyle(null, '#888888');
-        this.drawCircle(midpointX, midpointY, 3);
+        this.drawCircle(midpoint.x, midpoint.y, 3);
 
         // Label midpoint
-        this.drawText('M', midpointX + 8, midpointY - 8, '12px Arial', '#666666');
+        this.drawText('M', midpoint.x + 8, midpoint.y - 8, '12px Arial', '#666666');
 
         // Draw line from midpoint to point C (perpendicular bisector)
         this.setStyle('#888888', null, 1);
-        this.drawLine(midpointX, midpointY, triangle.pointC.absoluteX, triangle.pointC.absoluteY);
+        this.drawLine(midpoint.x, midpoint.y, triangle.pointC.absoluteX, triangle.pointC.absoluteY);
 
         // Show the perpendicular symbol at midpoint
-        this.renderPerpendicularSymbol(midpointX, midpointY,
+        this.renderPerpendicularSymbol(midpoint.x, midpoint.y,
             triangle.pointB.absoluteX - triangle.pointA.absoluteX,
             triangle.pointB.absoluteY - triangle.pointA.absoluteY);
     }
@@ -120,11 +122,11 @@ class TriangleRenderer extends BaseRenderer {
     renderAltitudeConstruction(triangle) {
         if (!triangle.pointC) return;
 
-        // Draw altitude from C to AB
-        const foot = this.getPerpendicularFoot(
-            triangle.pointC.absoluteX, triangle.pointC.absoluteY,
-            triangle.pointA.absoluteX, triangle.pointA.absoluteY,
-            triangle.pointB.absoluteX, triangle.pointB.absoluteY
+        // Use GeometryUtils for perpendicular foot calculation
+        const foot = GeometryUtils.perpendicularFoot(
+            { x: triangle.pointC.absoluteX, y: triangle.pointC.absoluteY },
+            { x: triangle.pointA.absoluteX, y: triangle.pointA.absoluteY },
+            { x: triangle.pointB.absoluteX, y: triangle.pointB.absoluteY }
         );
 
         if (foot) {
@@ -150,8 +152,13 @@ class TriangleRenderer extends BaseRenderer {
 
         this.ctx.save(); // Save context state
 
-        // Calculate the circumcenter and circumradius
-        const circumcenter = this.calculateCircumcenter(triangle);
+        // Use GeometryUtils for circumcenter calculation
+        const circumcenter = GeometryUtils.calculateCircumcenter(
+            { x: triangle.pointA.absoluteX, y: triangle.pointA.absoluteY },
+            { x: triangle.pointB.absoluteX, y: triangle.pointB.absoluteY },
+            { x: triangle.pointC.absoluteX, y: triangle.pointC.absoluteY }
+        );
+
         if (!circumcenter) {
             this.ctx.restore();
             return;
@@ -165,19 +172,14 @@ class TriangleRenderer extends BaseRenderer {
         // Draw circumcenter
         this.setStyle('#2E7D32', '#4CAF50', 1); // Darker green border
         this.resetLineDash();
-        this.drawCircle(circumcenter.x, circumcenter.y, 3); // Slightly larger
+        this.drawCircle(circumcenter.x, circumcenter.y, 3);
 
         // Label circumcenter
         this.drawText('O', circumcenter.x + 8, circumcenter.y - 8, '14px Arial', '#2E7D32');
 
         // Show radius measurement
-        this.drawText(
-            `r = ${circumcenter.radius.toFixed(1)}px`,
-            circumcenter.x + 8,
-            circumcenter.y + 20,
-            '11px Arial',
-            '#666666'
-        );
+        this.drawText(`r = ${circumcenter.radius.toFixed(1)}px`,
+                     circumcenter.x + 8, circumcenter.y + 20, '11px Arial', '#666666');
 
         this.ctx.restore(); // Restore context state
     }

@@ -34,7 +34,54 @@ class GeometryApp {
         this.setupMouseEvents();
         this.setupTouchEvents();
         this.initialize();
+        // Run math utilities test on initialization
+        this.testMathUtilities();
     }
+
+    // Test method to verify math utilities are working correctly
+    testMathUtilities() {
+        console.log('🧮 Testing Math Utilities...');
+
+        // Test Vector3D
+        const v1 = new Vector3D(1, 0, 0);
+        const v2 = new Vector3D(0, 1, 0);
+        const cross = v1.cross(v2);
+        console.log(`✅ Vector3D cross product: ${cross.toString()} (should be (0, 0, 1))`);
+
+        // Test GeometryUtils distance
+        const p1 = { x: 0, y: 0 };
+        const p2 = { x: 3, y: 4 };
+        const distance = GeometryUtils.distance2D(p1, p2);
+        console.log(`✅ 2D Distance: ${distance} (should be 5)`);
+
+        // Test equilateral triangle calculation
+        const triangleC = GeometryUtils.calculateEquilateralTriangle2D(
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+            'front'
+        );
+        console.log(`✅ Equilateral triangle point C: (${triangleC.x.toFixed(1)}, ${triangleC.y.toFixed(1)})`);
+
+        // Test circumcenter calculation
+        const circumcenter = GeometryUtils.calculateCircumcenter(
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+            triangleC
+        );
+        console.log(`✅ Circumcenter: (${circumcenter.x.toFixed(1)}, ${circumcenter.y.toFixed(1)}) r=${circumcenter.radius.toFixed(1)}`);
+
+        // Test point inside triangle
+        const isInside = GeometryUtils.isPointInsideTriangle(
+            { x: 50, y: 20 },
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+            triangleC
+        );
+        console.log(`✅ Point inside triangle: ${isInside} (should be true)`);
+
+        console.log('🎉 Math Utilities tests completed!');
+    }
+
 
     // Combine all sync methods into one
     syncAllObjectsWithState() {
