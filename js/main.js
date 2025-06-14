@@ -25,6 +25,7 @@ async function initializeApp() {
             'js/Grid.js',
             'js/Canvas.js',
             'js/Controls.js',
+            'js/UIController.js',
             'js/HorizonLine.js',
             'js/PerspectiveCamera.js',
             'js/Triangle.js',

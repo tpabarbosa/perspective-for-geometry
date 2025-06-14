@@ -20,21 +20,22 @@ class GeometryApp {
             800, 600, this.horizonLine, this.vanishingPoint
         );
 
-        // Initialize grid settings from state
-        this.syncGridWithState();
+        // Initialize object settings from state
+        this.syncAllObjectsWithState();
 
-        // Initialize triangle settings from state
-        this.syncTriangleWithState();
+        // Create UIController instead of Controls - UIController handles all DOM manipulation
+        this.uiController = new UIController(this.state, this);
 
-        // Initialize tetrahedron settings from state
-        this.syncTetrahedronWithState();
-
-        this.controls = new Controls(this.grid, () => this.draw(), this.state);
-        this.setupTriangleControls();
-        this.setupTetrahedronControls();
         this.setupMouseEvents();
         this.setupTouchEvents();
         this.initialize();
+    }
+
+    // Combine all sync methods into one
+    syncAllObjectsWithState() {
+        this.syncGridWithState();
+        this.syncTriangleWithState();
+        this.syncTetrahedronWithState();
     }
 
     // Sync grid object with state
@@ -63,6 +64,25 @@ class GeometryApp {
         this.tetrahedron.isDraggable = tetrahedronSettings.isDraggable;
         this.tetrahedron.side = tetrahedronSettings.side;
     }
+
+    // Callback methods for UIController to notify GeometryApp of changes
+    onGridSettingChanged() {
+        this.syncGridWithState();
+        this.draw();
+    }
+
+    onTriangleSettingChanged() {
+        this.syncTriangleWithState();
+        this.updateTriangle();
+        this.draw();
+    }
+
+    onTetrahedronSettingChanged() {
+        this.syncTetrahedronWithState();
+        this.updateTetrahedron();
+        this.draw();
+    }
+
 
     initialize() {
         this.resize();
@@ -184,73 +204,6 @@ class GeometryApp {
         ctx.setLineDash([]);
     }
 
-    setupTriangleControls() {
-        const showTriangleCheckbox = document.getElementById('showTriangle');
-        const toggleSideButton = document.getElementById('toggleTriangleSide');
-        const showConstructionLinesCheckbox = document.getElementById('showConstructionLines');
-        const showCircumcircleCheckbox = document.getElementById('showCircumcircle');
-        const triangleInfo = document.getElementById('triangleInfo');
-
-        // Initialize UI from state
-        const triangleSettings = this.state.getTriangleSettings();
-        showTriangleCheckbox.checked = triangleSettings.show;
-        showConstructionLinesCheckbox.checked = triangleSettings.showConstructionLines;
-        showCircumcircleCheckbox.checked = triangleSettings.showCircumcircle;
-
-        showTriangleCheckbox.addEventListener('change', (e) => {
-            this.state.updateTriangleSetting('show', e.target.checked);
-            triangleInfo.style.display = e.target.checked ? 'block' : 'none';
-
-            // Enable/disable triangle-related controls
-            toggleSideButton.disabled = !e.target.checked;
-            showConstructionLinesCheckbox.disabled = !e.target.checked;
-            showCircumcircleCheckbox.disabled = !e.target.checked;
-
-            // Handle tetrahedron dependency
-            this.handleTetrahedronDependency(!e.target.checked);
-
-            // Clear checkboxes when triangle is hidden
-            if (!e.target.checked) {
-                showConstructionLinesCheckbox.checked = false;
-                showCircumcircleCheckbox.checked = false;
-                this.state.updateTriangleSetting('showConstructionLines', false);
-                this.state.updateTriangleSetting('showCircumcircle', false);
-            }
-
-            this.syncTriangleWithState();
-            this.updateTriangle();
-            this.draw();
-        });
-
-        toggleSideButton.addEventListener('click', () => {
-            const currentSettings = this.state.getTriangleSettings();
-            const newSide = currentSettings.side === 'top' ? 'bottom' : 'top';
-            this.state.updateTriangleSetting('side', newSide);
-            this.syncTriangleWithState();
-            this.updateTriangle();
-            this.draw();
-        });
-
-        showConstructionLinesCheckbox.addEventListener('change', (e) => {
-            this.state.updateTriangleSetting('showConstructionLines', e.target.checked);
-            this.syncTriangleWithState();
-            this.draw();
-        });
-
-        showCircumcircleCheckbox.addEventListener('change', (e) => {
-            this.state.updateTriangleSetting('showCircumcircle', e.target.checked);
-            this.syncTriangleWithState();
-            this.draw();
-        });
-
-        // Initialize button states based on current state
-        const isTriangleVisible = this.state.isTriangleVisible();
-        toggleSideButton.disabled = !isTriangleVisible;
-        showConstructionLinesCheckbox.disabled = !isTriangleVisible;
-        showCircumcircleCheckbox.disabled = !isTriangleVisible;
-        triangleInfo.style.display = isTriangleVisible ? 'block' : 'none';
-    }
-
 
     updateTriangle() {
         if (this.state.isTriangleVisible()) {
@@ -271,8 +224,7 @@ class GeometryApp {
 
     updateTriangleInfo() {
         if (!this.triangle.pointC) {
-            document.getElementById('sideLengths').innerHTML =
-                '<span style="color: #ff6666;">Triangle cannot be calculated</span>';
+            this.uiController.updateTriangleInfo(null);
             return;
         }
 
@@ -280,115 +232,13 @@ class GeometryApp {
         const sideLengths3D = this.triangle.get3DSideLengths();
 
         if (sideLengths && sideLengths3D) {
-            document.getElementById('sideLengths').innerHTML =
+            const infoHTML =
                 `Screen: AB=${sideLengths.ab}, BC=${sideLengths.bc}, CA=${sideLengths.ca}<br>` +
                 `3D: AB=${sideLengths3D.ab}, BC=${sideLengths3D.bc}, CA=${sideLengths3D.ca}`;
+            this.uiController.updateTriangleInfo(infoHTML);
         }
     }
 
-    setupTetrahedronControls() {
-        const showTetrahedronCheckbox = document.getElementById('showTetrahedron');
-        const toggleSideButton = document.getElementById('toggleTetrahedronSide');
-        const showEdgesCheckbox = document.getElementById('showTetrahedronEdges');
-        const tetrahedronInfo = document.getElementById('tetrahedronInfo');
-        const enableTriangleDragCheckbox = document.getElementById('enableTriangleDrag');
-        const enableTetrahedronDragCheckbox = document.getElementById('enableTetrahedronDrag');
-
-        // Initialize UI from state
-        const triangleSettings = this.state.getTriangleSettings();
-        const tetrahedronSettings = this.state.getTetrahedronSettings();
-        showTetrahedronCheckbox.checked = tetrahedronSettings.show;
-        showEdgesCheckbox.checked = tetrahedronSettings.showEdges;
-        enableTriangleDragCheckbox.checked = triangleSettings.isDraggable;
-        enableTetrahedronDragCheckbox.checked = tetrahedronSettings.isDraggable;
-
-        showTetrahedronCheckbox.addEventListener('change', (e) => {
-            this.state.updateTetrahedronSetting('show', e.target.checked);
-            tetrahedronInfo.style.display = e.target.checked ? 'block' : 'none';
-
-            // Enable/disable tetrahedron-related controls
-            toggleSideButton.disabled = !e.target.checked;
-            showEdgesCheckbox.disabled = !e.target.checked;
-            enableTetrahedronDragCheckbox.disabled = !e.target.checked;
-
-            // Clear tetrahedron settings when hidden
-            if (!e.target.checked) {
-                showEdgesCheckbox.checked = true; // Reset to default
-                this.state.updateTetrahedronSetting('showEdges', true);
-            }
-
-            this.syncTetrahedronWithState();
-            this.updateTetrahedron();
-            this.draw();
-        });
-
-        toggleSideButton.addEventListener('click', () => {
-            const currentSettings = this.state.getTetrahedronSettings();
-            const newSide = currentSettings.side === 'above' ? 'below' : 'above';
-            this.state.updateTetrahedronSetting('side', newSide);
-            this.syncTetrahedronWithState();
-            this.updateTetrahedron();
-            this.draw();
-        });
-
-        showEdgesCheckbox.addEventListener('change', (e) => {
-            this.state.updateTetrahedronSetting('showEdges', e.target.checked);
-            this.syncTetrahedronWithState();
-            this.draw();
-        });
-
-        enableTriangleDragCheckbox.addEventListener('change', (e) => {
-            this.state.updateTriangleSetting('isDraggable', e.target.checked);
-            this.syncTriangleWithState();
-        });
-
-        enableTetrahedronDragCheckbox.addEventListener('change', (e) => {
-            this.state.updateTetrahedronSetting('isDraggable', e.target.checked);
-            this.syncTetrahedronWithState();
-        });
-
-        // Initialize button states based on current state
-        const isTetrahedronVisible = this.state.isTetrahedronVisible();
-        const isTriangleVisible = this.state.isTriangleVisible();
-
-        toggleSideButton.disabled = !isTetrahedronVisible;
-        showEdgesCheckbox.disabled = !isTetrahedronVisible;
-        enableTetrahedronDragCheckbox.disabled = !isTetrahedronVisible;
-        showTetrahedronCheckbox.disabled = !isTriangleVisible; // Initially disabled until triangle is shown
-        tetrahedronInfo.style.display = isTetrahedronVisible ? 'block' : 'none';
-    }
-
-    handleTetrahedronDependency(disableTetrahedron) {
-        const showTetrahedronCheckbox = document.getElementById('showTetrahedron');
-        const toggleTetrahedronSideButton = document.getElementById('toggleTetrahedronSide');
-        const showTetrahedronEdgesCheckbox = document.getElementById('showTetrahedronEdges');
-        const enableTetrahedronDragCheckbox = document.getElementById('enableTetrahedronDrag');
-        const tetrahedronInfo = document.getElementById('tetrahedronInfo');
-
-        if (disableTetrahedron) {
-            // Disable and clear tetrahedron when triangle is hidden
-            showTetrahedronCheckbox.disabled = true;
-            showTetrahedronCheckbox.checked = false;
-            this.state.updateTetrahedronSetting('show', false);
-
-            // Disable all tetrahedron controls
-            toggleTetrahedronSideButton.disabled = true;
-            showTetrahedronEdgesCheckbox.disabled = true;
-            enableTetrahedronDragCheckbox.disabled = true;
-
-            // Hide tetrahedron info
-            tetrahedronInfo.style.display = 'none';
-
-            // Reset tetrahedron settings
-            showTetrahedronEdgesCheckbox.checked = true;
-            this.state.updateTetrahedronSetting('showEdges', true);
-
-            this.syncTetrahedronWithState();
-        } else {
-            // Enable tetrahedron checkbox when triangle is shown
-            showTetrahedronCheckbox.disabled = false;
-        }
-    }
 
     updateTetrahedron() {
         if (this.state.isTetrahedronVisible() && this.state.isTriangleVisible()) {
@@ -404,9 +254,10 @@ class GeometryApp {
     updateTetrahedronInfo() {
         const edgeLengths = this.tetrahedron.get3DEdgeLengths();
         if (edgeLengths) {
-            document.getElementById('tetrahedronEdgeLengths').innerHTML =
+            const infoHTML =
                 `AB=${edgeLengths.ab}, BC=${edgeLengths.bc}, CA=${edgeLengths.ca}<br>` +
                 `DA=${edgeLengths.da}, DB=${edgeLengths.db}, DC=${edgeLengths.dc}`;
+            this.uiController.updateTetrahedronInfo(infoHTML);
         }
     }
 
