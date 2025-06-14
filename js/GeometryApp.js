@@ -1,42 +1,67 @@
 class GeometryApp {
     constructor() {
+        // Initialize state management first
+        this.state = new AppState();
+
         this.canvasManager = new CanvasManager('geometryCanvas');
         this.grid = new Grid();
         this.horizonLine = new HorizonLine(0.4);
 
         this.points = [
-            new Point(0.25, 0.25, 'A', '#ff0000'),
+            new Point(0.25, 0.67, 'A', '#ff0000'),
             new Point(0.75, 0.67, 'B', '#0000ff')
         ];
 
         this.triangle = new EquilateralTriangle(this.points[0], this.points[1], 'bottom');
-        this.showTriangle = false;
-        this.showConstruction = true;
-
         this.tetrahedron = new EquilateralTetrahedron(this.triangle);
-        this.showTetrahedron = false;
-
         this.vanishingPoint = new VanishingPoint(0.5, 0.4, 'VP', '#00ff00');
 
         this.perspectiveCamera = new PerspectiveCamera(
             800, 600, this.horizonLine, this.vanishingPoint
         );
 
-        this.isDragging = false;
-        this.draggedPoint = null;
-        this.draggedHorizon = false;
+        // Initialize grid settings from state
+        this.syncGridWithState();
 
-        this.draggedTriangle = false;
-        this.draggedTetrahedron = false;
+        // Initialize triangle settings from state
+        this.syncTriangleWithState();
 
-        this.mouseOffset = { x: 0, y: 0 };
+        // Initialize tetrahedron settings from state
+        this.syncTetrahedronWithState();
 
-        this.controls = new Controls(this.grid, () => this.draw());
+        this.controls = new Controls(this.grid, () => this.draw(), this.state);
         this.setupTriangleControls();
         this.setupTetrahedronControls();
         this.setupMouseEvents();
         this.setupTouchEvents();
         this.initialize();
+    }
+
+    // Sync grid object with state
+    syncGridWithState() {
+        const gridSettings = this.state.getGridSettings();
+        this.grid.snapX = gridSettings.snapX;
+        this.grid.snapY = gridSettings.snapY;
+        this.grid.size = gridSettings.size;
+        this.grid.show = gridSettings.show;
+        this.grid.showCoordinates = gridSettings.showCoordinates;
+    }
+
+    // Sync triangle object with state
+    syncTriangleWithState() {
+        const triangleSettings = this.state.getTriangleSettings();
+        this.triangle.showConstructionLines = triangleSettings.showConstructionLines;
+        this.triangle.showCircumcircle = triangleSettings.showCircumcircle;
+        this.triangle.isDraggable = triangleSettings.isDraggable;
+        this.triangle.side = triangleSettings.side;
+    }
+
+    // Sync tetrahedron object with state
+    syncTetrahedronWithState() {
+        const tetrahedronSettings = this.state.getTetrahedronSettings();
+        this.tetrahedron.showEdges = tetrahedronSettings.showEdges;
+        this.tetrahedron.isDraggable = tetrahedronSettings.isDraggable;
+        this.tetrahedron.side = tetrahedronSettings.side;
     }
 
     initialize() {
@@ -74,8 +99,8 @@ class GeometryApp {
         // Draw perspective lines from points to vanishing point
         this.drawPerspectiveLines();
 
-        // Draw triangle if enabled
-        if (this.showTriangle) {
+        // Draw triangle if enabled - use state instead of direct property
+        if (this.state.isTriangleVisible()) {
             this.triangle.draw(this.canvasManager.ctx);
 
             // Only draw point C if it exists
@@ -85,8 +110,8 @@ class GeometryApp {
             }
         }
 
-        // Draw tetrahedron if enabled
-        if (this.showTetrahedron && this.showTriangle) {
+        // Draw tetrahedron if enabled - use state instead of direct property
+        if (this.state.isTetrahedronVisible() && this.state.isTriangleVisible()) {
             this.tetrahedron.draw(this.canvasManager.ctx);
 
             // Draw point D if it exists
@@ -166,55 +191,69 @@ class GeometryApp {
         const showCircumcircleCheckbox = document.getElementById('showCircumcircle');
         const triangleInfo = document.getElementById('triangleInfo');
 
+        // Initialize UI from state
+        const triangleSettings = this.state.getTriangleSettings();
+        showTriangleCheckbox.checked = triangleSettings.show;
+        showConstructionLinesCheckbox.checked = triangleSettings.showConstructionLines;
+        showCircumcircleCheckbox.checked = triangleSettings.showCircumcircle;
+
         showTriangleCheckbox.addEventListener('change', (e) => {
-            this.showTriangle = e.target.checked;
-            triangleInfo.style.display = this.showTriangle ? 'block' : 'none';
+            this.state.updateTriangleSetting('show', e.target.checked);
+            triangleInfo.style.display = e.target.checked ? 'block' : 'none';
 
             // Enable/disable triangle-related controls
-            toggleSideButton.disabled = !this.showTriangle;
-            showConstructionLinesCheckbox.disabled = !this.showTriangle;
-            showCircumcircleCheckbox.disabled = !this.showTriangle;
+            toggleSideButton.disabled = !e.target.checked;
+            showConstructionLinesCheckbox.disabled = !e.target.checked;
+            showCircumcircleCheckbox.disabled = !e.target.checked;
 
             // Handle tetrahedron dependency
-            this.handleTetrahedronDependency(!this.showTriangle);
+            this.handleTetrahedronDependency(!e.target.checked);
 
             // Clear checkboxes when triangle is hidden
-            if (!this.showTriangle) {
+            if (!e.target.checked) {
                 showConstructionLinesCheckbox.checked = false;
                 showCircumcircleCheckbox.checked = false;
-                this.triangle.showConstructionLines = false;
-                this.triangle.showCircumcircle = false;
+                this.state.updateTriangleSetting('showConstructionLines', false);
+                this.state.updateTriangleSetting('showCircumcircle', false);
             }
 
+            this.syncTriangleWithState();
             this.updateTriangle();
             this.draw();
         });
 
         toggleSideButton.addEventListener('click', () => {
-            this.triangle.side = this.triangle.side === 'top' ? 'bottom' : 'top';
+            const currentSettings = this.state.getTriangleSettings();
+            const newSide = currentSettings.side === 'top' ? 'bottom' : 'top';
+            this.state.updateTriangleSetting('side', newSide);
+            this.syncTriangleWithState();
             this.updateTriangle();
             this.draw();
         });
 
         showConstructionLinesCheckbox.addEventListener('change', (e) => {
-            this.triangle.showConstructionLines = e.target.checked;
+            this.state.updateTriangleSetting('showConstructionLines', e.target.checked);
+            this.syncTriangleWithState();
             this.draw();
         });
 
         showCircumcircleCheckbox.addEventListener('change', (e) => {
-            this.triangle.showCircumcircle = e.target.checked;
+            this.state.updateTriangleSetting('showCircumcircle', e.target.checked);
+            this.syncTriangleWithState();
             this.draw();
         });
 
-        // Initialize button states
-        toggleSideButton.disabled = true;
-        showConstructionLinesCheckbox.disabled = true;
-        showCircumcircleCheckbox.disabled = true;
+        // Initialize button states based on current state
+        const isTriangleVisible = this.state.isTriangleVisible();
+        toggleSideButton.disabled = !isTriangleVisible;
+        showConstructionLinesCheckbox.disabled = !isTriangleVisible;
+        showCircumcircleCheckbox.disabled = !isTriangleVisible;
+        triangleInfo.style.display = isTriangleVisible ? 'block' : 'none';
     }
 
 
     updateTriangle() {
-        if (this.showTriangle) {
+        if (this.state.isTriangleVisible()) {
             this.triangle.calculateVertexC(
                 this.canvasManager.canvas.width,
                 this.canvasManager.canvas.height,
@@ -224,7 +263,7 @@ class GeometryApp {
             this.updateTriangleInfo();
 
             // Update tetrahedron when triangle changes
-            if (this.showTetrahedron) {
+            if (this.state.isTetrahedronVisible()) {
                 this.updateTetrahedron();
             }
         }
@@ -255,49 +294,68 @@ class GeometryApp {
         const enableTriangleDragCheckbox = document.getElementById('enableTriangleDrag');
         const enableTetrahedronDragCheckbox = document.getElementById('enableTetrahedronDrag');
 
+        // Initialize UI from state
+        const triangleSettings = this.state.getTriangleSettings();
+        const tetrahedronSettings = this.state.getTetrahedronSettings();
+        showTetrahedronCheckbox.checked = tetrahedronSettings.show;
+        showEdgesCheckbox.checked = tetrahedronSettings.showEdges;
+        enableTriangleDragCheckbox.checked = triangleSettings.isDraggable;
+        enableTetrahedronDragCheckbox.checked = tetrahedronSettings.isDraggable;
+
         showTetrahedronCheckbox.addEventListener('change', (e) => {
-            this.showTetrahedron = e.target.checked;
-            tetrahedronInfo.style.display = this.showTetrahedron ? 'block' : 'none';
+            this.state.updateTetrahedronSetting('show', e.target.checked);
+            tetrahedronInfo.style.display = e.target.checked ? 'block' : 'none';
 
             // Enable/disable tetrahedron-related controls
-            toggleSideButton.disabled = !this.showTetrahedron;
-            showEdgesCheckbox.disabled = !this.showTetrahedron;
-            enableTetrahedronDragCheckbox.disabled = !this.showTetrahedron;
+            toggleSideButton.disabled = !e.target.checked;
+            showEdgesCheckbox.disabled = !e.target.checked;
+            enableTetrahedronDragCheckbox.disabled = !e.target.checked;
 
             // Clear tetrahedron settings when hidden
-            if (!this.showTetrahedron) {
+            if (!e.target.checked) {
                 showEdgesCheckbox.checked = true; // Reset to default
-                this.tetrahedron.showEdges = true;
+                this.state.updateTetrahedronSetting('showEdges', true);
             }
 
+            this.syncTetrahedronWithState();
             this.updateTetrahedron();
             this.draw();
         });
 
         toggleSideButton.addEventListener('click', () => {
-            this.tetrahedron.toggleSide();
+            const currentSettings = this.state.getTetrahedronSettings();
+            const newSide = currentSettings.side === 'above' ? 'below' : 'above';
+            this.state.updateTetrahedronSetting('side', newSide);
+            this.syncTetrahedronWithState();
             this.updateTetrahedron();
             this.draw();
         });
 
         showEdgesCheckbox.addEventListener('change', (e) => {
-            this.tetrahedron.showEdges = e.target.checked;
+            this.state.updateTetrahedronSetting('showEdges', e.target.checked);
+            this.syncTetrahedronWithState();
             this.draw();
         });
 
         enableTriangleDragCheckbox.addEventListener('change', (e) => {
-            this.triangle.isDraggable = e.target.checked;
+            this.state.updateTriangleSetting('isDraggable', e.target.checked);
+            this.syncTriangleWithState();
         });
 
         enableTetrahedronDragCheckbox.addEventListener('change', (e) => {
-            this.tetrahedron.isDraggable = e.target.checked;
+            this.state.updateTetrahedronSetting('isDraggable', e.target.checked);
+            this.syncTetrahedronWithState();
         });
 
-        // Initialize button states - tetrahedron starts disabled
-        toggleSideButton.disabled = true;
-        showEdgesCheckbox.disabled = true;
-        enableTetrahedronDragCheckbox.disabled = true;
-        showTetrahedronCheckbox.disabled = true; // Initially disabled until triangle is shown
+        // Initialize button states based on current state
+        const isTetrahedronVisible = this.state.isTetrahedronVisible();
+        const isTriangleVisible = this.state.isTriangleVisible();
+
+        toggleSideButton.disabled = !isTetrahedronVisible;
+        showEdgesCheckbox.disabled = !isTetrahedronVisible;
+        enableTetrahedronDragCheckbox.disabled = !isTetrahedronVisible;
+        showTetrahedronCheckbox.disabled = !isTriangleVisible; // Initially disabled until triangle is shown
+        tetrahedronInfo.style.display = isTetrahedronVisible ? 'block' : 'none';
     }
 
     handleTetrahedronDependency(disableTetrahedron) {
@@ -311,7 +369,7 @@ class GeometryApp {
             // Disable and clear tetrahedron when triangle is hidden
             showTetrahedronCheckbox.disabled = true;
             showTetrahedronCheckbox.checked = false;
-            this.showTetrahedron = false;
+            this.state.updateTetrahedronSetting('show', false);
 
             // Disable all tetrahedron controls
             toggleTetrahedronSideButton.disabled = true;
@@ -323,7 +381,9 @@ class GeometryApp {
 
             // Reset tetrahedron settings
             showTetrahedronEdgesCheckbox.checked = true;
-            this.tetrahedron.showEdges = true;
+            this.state.updateTetrahedronSetting('showEdges', true);
+
+            this.syncTetrahedronWithState();
         } else {
             // Enable tetrahedron checkbox when triangle is shown
             showTetrahedronCheckbox.disabled = false;
@@ -331,7 +391,7 @@ class GeometryApp {
     }
 
     updateTetrahedron() {
-        if (this.showTetrahedron && this.showTriangle) {
+        if (this.state.isTetrahedronVisible() && this.state.isTriangleVisible()) {
             this.tetrahedron.calculateVertexD(
                 this.canvasManager.canvas.width,
                 this.canvasManager.canvas.height,
@@ -389,15 +449,15 @@ class GeometryApp {
         const mousePos = this.canvasManager.getMousePosition(event);
 
         // Check for tetrahedron drag first (higher priority)
-        if (this.showTetrahedron && this.tetrahedron.startDrag(mousePos.x, mousePos.y)) {
-            this.draggedTetrahedron = true;
+        if (this.state.isTetrahedronVisible() && this.tetrahedron.startDrag(mousePos.x, mousePos.y)) {
+            this.state.updateInteractionState('draggedTetrahedron', true);
             this.canvasManager.canvas.style.cursor = 'grabbing';
             return;
         }
 
         // Check for triangle drag
-        if (this.showTriangle && this.triangle.startDrag(mousePos.x, mousePos.y)) {
-            this.draggedTriangle = true;
+        if (this.state.isTriangleVisible() && this.triangle.startDrag(mousePos.x, mousePos.y)) {
+            this.state.updateInteractionState('draggedTriangle', true);
             this.canvasManager.canvas.style.cursor = 'grabbing';
             return;
         }
@@ -405,27 +465,28 @@ class GeometryApp {
         // Check for individual point drag
         const pointUnderMouse = this.getPointUnderMouse(mousePos);
         if (pointUnderMouse) {
-            this.isDragging = true;
-            this.draggedPoint = pointUnderMouse;
-            this.mouseOffset = {
+            this.state.updateInteractionState('isDragging', true);
+            this.state.updateInteractionState('draggedPoint', pointUnderMouse);
+            this.state.updateInteractionState('mouseOffset', {
                 x: mousePos.x - pointUnderMouse.absoluteX,
                 y: mousePos.y - pointUnderMouse.absoluteY
-            };
+            });
             this.canvasManager.canvas.style.cursor = 'grabbing';
         } else if (this.horizonLine.isNearLine(mousePos.y)) {
-            this.draggedHorizon = true;
-            this.mouseOffset = {
+            this.state.updateInteractionState('draggedHorizon', true);
+            this.state.updateInteractionState('mouseOffset', {
                 x: 0,
                 y: mousePos.y - this.horizonLine.yAbsolute
-            };
+            });
             this.canvasManager.canvas.style.cursor = 'grabbing';
         }
     }
 
     handleMouseMove(event) {
         const mousePos = this.canvasManager.getMousePosition(event);
+        const interactionState = this.state.getInteractionState();
 
-        if (this.draggedTetrahedron) {
+        if (interactionState.draggedTetrahedron) {
             this.tetrahedron.drag(
                 mousePos.x, mousePos.y,
                 this.canvasManager.canvas.width,
@@ -434,7 +495,7 @@ class GeometryApp {
             );
             this.updateTriangle(); // This will also update tetrahedron
             this.draw();
-        } else if (this.draggedTriangle) {
+        } else if (interactionState.draggedTriangle) {
             this.triangle.drag(
                 mousePos.x, mousePos.y,
                 this.canvasManager.canvas.width,
@@ -443,11 +504,11 @@ class GeometryApp {
             );
             this.updateTriangle(); // This will also update tetrahedron if shown
             this.draw();
-        } else if (this.isDragging && this.draggedPoint) {
-            const newX = mousePos.x - this.mouseOffset.x;
-            const newY = mousePos.y - this.mouseOffset.y;
+        } else if (interactionState.isDragging && interactionState.draggedPoint) {
+            const newX = mousePos.x - interactionState.mouseOffset.x;
+            const newY = mousePos.y - interactionState.mouseOffset.y;
 
-            this.draggedPoint.setPosition(
+            interactionState.draggedPoint.setPosition(
                 newX, newY,
                 this.canvasManager.canvas.width,
                 this.canvasManager.canvas.height,
@@ -455,9 +516,9 @@ class GeometryApp {
             );
 
             // If dragging vanishing point, keep it on horizon line
-            if (this.draggedPoint.isVanishingPoint) {
-                this.draggedPoint.absoluteY = this.horizonLine.yAbsolute;
-                this.draggedPoint.updateRelativePosition(
+            if (interactionState.draggedPoint.isVanishingPoint) {
+                interactionState.draggedPoint.absoluteY = this.horizonLine.yAbsolute;
+                interactionState.draggedPoint.updateRelativePosition(
                     this.canvasManager.canvas.width,
                     this.canvasManager.canvas.height
                 );
@@ -471,13 +532,13 @@ class GeometryApp {
             }
 
             // Update triangle when ANY point is moved (A, B, or vanishing point)
-            if (this.showTriangle) {
+            if (this.state.isTriangleVisible()) {
                 this.updateTriangle();
             }
 
             this.draw();
-        } else if (this.draggedHorizon) {
-            const newY = mousePos.y - this.mouseOffset.y;
+        } else if (interactionState.draggedHorizon) {
+            const newY = mousePos.y - interactionState.mouseOffset.y;
             this.horizonLine.setPosition(newY, this.canvasManager.canvas.height);
 
             // Move vanishing point with horizon line
@@ -496,7 +557,7 @@ class GeometryApp {
             );
 
             // Update triangle when horizon moves
-            if (this.showTriangle) {
+            if (this.state.isTriangleVisible()) {
                 this.updateTriangle();
             }
 
@@ -508,14 +569,16 @@ class GeometryApp {
     }
 
     updateCursor(mousePos) {
+        const interactionState = this.state.getInteractionState();
+
         // Check for tetrahedron drag area first (highest priority)
-        if (this.showTetrahedron && this.tetrahedron.isPointNearTetrahedron(mousePos.x, mousePos.y)) {
+        if (this.state.isTetrahedronVisible() && this.tetrahedron.isPointNearTetrahedron(mousePos.x, mousePos.y)) {
             this.canvasManager.canvas.style.cursor = 'grab';
             return;
         }
 
         // Check for triangle drag area
-        if (this.showTriangle && this.triangle.isPointInsideTriangle(mousePos.x, mousePos.y)) {
+        if (this.state.isTriangleVisible() && this.triangle.isPointInsideTriangle(mousePos.x, mousePos.y)) {
             this.canvasManager.canvas.style.cursor = 'grab';
             return;
         }
@@ -524,12 +587,12 @@ class GeometryApp {
         const pointUnderMouse = this.getPointUnderMouse(mousePos);
 
         // Special cursor for point C (not draggable individually)
-        if (this.showTriangle && this.triangle.pointC &&
+        if (this.state.isTriangleVisible() && this.triangle.pointC &&
             this.triangle.pointC.isPointInside(mousePos.x, mousePos.y)) {
             this.canvasManager.canvas.style.cursor = 'not-allowed';
         }
         // Special cursor for point D (not draggable individually)
-        else if (this.showTetrahedron && this.tetrahedron.pointD &&
+        else if (this.state.isTetrahedronVisible() && this.tetrahedron.pointD &&
                  this.tetrahedron.pointD.isPointInside(mousePos.x, mousePos.y)) {
             this.canvasManager.canvas.style.cursor = 'not-allowed';
         }
@@ -548,29 +611,32 @@ class GeometryApp {
     }
 
     handleMouseUp(event) {
-        if (this.draggedTetrahedron) {
+        const interactionState = this.state.getInteractionState();
+
+        if (interactionState.draggedTetrahedron) {
             this.tetrahedron.stopDrag();
-            this.draggedTetrahedron = false;
+            this.state.updateInteractionState('draggedTetrahedron', false);
         }
 
-        if (this.draggedTriangle) {
+        if (interactionState.draggedTriangle) {
             this.triangle.stopDrag();
-            this.draggedTriangle = false;
+            this.state.updateInteractionState('draggedTriangle', false);
         }
 
-        this.isDragging = false;
-        this.draggedPoint = null;
-        this.draggedHorizon = false;
+        // Clear all drag state
+        this.state.clearDragState();
         this.canvasManager.canvas.style.cursor = 'default';
     }
 
     handleMouseLeave(event) {
-        if (this.isDragging) {
-            this.isDragging = false;
-            this.draggedPoint = null;
+        const interactionState = this.state.getInteractionState();
+
+        if (interactionState.isDragging) {
+            this.state.updateInteractionState('isDragging', false);
+            this.state.updateInteractionState('draggedPoint', null);
         }
-        if (this.draggedHorizon) {
-            this.draggedHorizon = false;
+        if (interactionState.draggedHorizon) {
+            this.state.updateInteractionState('draggedHorizon', false);
         }
         this.canvasManager.canvas.style.cursor = 'default';
     }

@@ -20,6 +20,7 @@ class JSLoader {
 async function initializeApp() {
     try {
         const scripts = [
+            'js/AppState.js',
             'js/Point.js',
             'js/Grid.js',
             'js/Canvas.js',
