@@ -7,7 +7,7 @@ class EquilateralTriangle {
         this.color = '#9932cc';
         this.lineWidth = 2;
         this.showConstructionLines = false;
-        this.showCircumcircle = false; // Add this
+        this.showCircumcircle = false;
         this.isDraggable = true;
         this.isBeingDragged = false;
         this.dragOffset = { x: 0, y: 0 };
@@ -16,6 +16,12 @@ class EquilateralTriangle {
         this.point3DA = null;
         this.point3DB = null;
         this.point3DC = null;
+    }
+
+    // Standard Draggable Interface Implementation
+    isPointInDragArea(mouseX, mouseY) {
+        if (!this.isDraggable || !this.pointC) return false;
+        return this.isPointInsideTriangle(mouseX, mouseY);
     }
 
     calculateVertexC(canvasWidth, canvasHeight, vanishingPoint, perspectiveCamera) {
@@ -123,10 +129,11 @@ class EquilateralTriangle {
     }
 
 
-        draw(ctx) {
+    // Enhanced draw method with drag indicator
+    draw(ctx) {
         if (!this.pointC) return;
 
-        // Draw drag indicator first (behind triangle)
+        // Draw drag indicator first (behind triangle) when being dragged
         if (this.isBeingDragged) {
             this.drawDragIndicator(ctx);
         }
@@ -486,22 +493,19 @@ class EquilateralTriangle {
     }
 
     startDrag(mouseX, mouseY) {
-        if (!this.isDraggable || !this.pointC) return false;
+        if (!this.isPointInDragArea(mouseX, mouseY)) return false;
 
-        if (this.isPointInsideTriangle(mouseX, mouseY)) {
-            this.isBeingDragged = true;
+        this.isBeingDragged = true;
 
-            // Calculate centroid of triangle for drag reference
-            const centroidX = (this.pointA.absoluteX + this.pointB.absoluteX + this.pointC.absoluteX) / 3;
-            const centroidY = (this.pointA.absoluteY + this.pointB.absoluteY + this.pointC.absoluteY) / 3;
+        // Calculate centroid of triangle for drag reference
+        const centroidX = (this.pointA.absoluteX + this.pointB.absoluteX + this.pointC.absoluteX) / 3;
+        const centroidY = (this.pointA.absoluteY + this.pointB.absoluteY + this.pointC.absoluteY) / 3;
 
-            this.dragOffset = {
-                x: mouseX - centroidX,
-                y: mouseY - centroidY
-            };
-            return true;
-        }
-        return false;
+        this.dragOffset = {
+            x: mouseX - centroidX,
+            y: mouseY - centroidY
+        };
+        return true;
     }
 
     drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
@@ -537,6 +541,15 @@ class EquilateralTriangle {
 
     stopDrag() {
         this.isBeingDragged = false;
+        this.dragOffset = { x: 0, y: 0 };
+    }
+
+    isDragging() {
+        return this.isBeingDragged;
+    }
+
+    getCursorType() {
+        return this.isDraggable ? 'grab' : 'not-allowed';
     }
 
     // Add visual feedback when triangle is draggable
@@ -544,12 +557,24 @@ class EquilateralTriangle {
         if (!this.pointC || !this.isDraggable) return;
 
         // Draw a subtle fill to indicate draggable area
-        ctx.fillStyle = 'rgba(153, 50, 204, 0.1)'; // Semi-transparent purple
+        ctx.fillStyle = 'rgba(153, 50, 204, 0.15)'; // Semi-transparent purple, slightly more visible when dragging
         ctx.beginPath();
         ctx.moveTo(this.pointA.absoluteX, this.pointA.absoluteY);
         ctx.lineTo(this.pointB.absoluteX, this.pointB.absoluteY);
         ctx.lineTo(this.pointC.absoluteX, this.pointC.absoluteY);
         ctx.closePath();
         ctx.fill();
+
+        // Draw dashed outline to show it's being dragged
+        ctx.strokeStyle = 'rgba(153, 50, 204, 0.8)';
+        ctx.lineWidth = this.lineWidth + 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(this.pointA.absoluteX, this.pointA.absoluteY);
+        ctx.lineTo(this.pointB.absoluteX, this.pointB.absoluteY);
+        ctx.lineTo(this.pointC.absoluteX, this.pointC.absoluteY);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash([]);
     }
 }

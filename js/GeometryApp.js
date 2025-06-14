@@ -20,6 +20,9 @@ class GeometryApp {
             800, 600, this.horizonLine, this.vanishingPoint
         );
 
+        this.draggableObjects = [];
+        this.currentDraggedObject = null;
+
         // Initialize object settings from state
         this.syncAllObjectsWithState();
 
@@ -73,12 +76,14 @@ class GeometryApp {
 
     onTriangleSettingChanged() {
         this.syncTriangleWithState();
+        this.updateDraggableObjects();
         this.updateTriangle();
         this.draw();
     }
 
     onTetrahedronSettingChanged() {
         this.syncTetrahedronWithState();
+        this.updateDraggableObjects();
         this.updateTetrahedron();
         this.draw();
     }
@@ -86,6 +91,30 @@ class GeometryApp {
 
     initialize() {
         this.resize();
+        this.updateDraggableObjects();
+    }
+
+    updateDraggableObjects() {
+        // Clear and rebuild draggable objects list in priority order
+        this.draggableObjects = [];
+
+        // Priority order: points > triangle > tetrahedron > horizon
+        // Individual points first (highest priority - most precise targets)
+        this.draggableObjects.push(...this.points);
+        this.draggableObjects.push(this.vanishingPoint);
+
+        // Triangle (medium-high priority)
+        if (this.state.isTriangleVisible() && this.triangle.isDraggable) {
+            this.draggableObjects.push(this.triangle);
+        }
+
+        // Tetrahedron (medium priority)
+        if (this.state.isTetrahedronVisible() && this.tetrahedron.isDraggable) {
+            this.draggableObjects.push(this.tetrahedron);
+        }
+
+        // Horizon line (lowest priority - largest target area)
+        this.draggableObjects.push(this.horizonLine);
     }
 
     resize() {
@@ -299,118 +328,33 @@ class GeometryApp {
     handleMouseDown(event) {
         const mousePos = this.canvasManager.getMousePosition(event);
 
-        // Check for tetrahedron drag first (higher priority)
-        if (this.state.isTetrahedronVisible() && this.tetrahedron.startDrag(mousePos.x, mousePos.y)) {
-            this.state.updateInteractionState('draggedTetrahedron', true);
-            this.canvasManager.canvas.style.cursor = 'grabbing';
-            return;
+        // Try to start drag on each object in priority order
+        for (const obj of this.draggableObjects) {
+            if (obj.startDrag(mousePos.x, mousePos.y)) {
+                this.currentDraggedObject = obj;
+                this.canvasManager.canvas.style.cursor = 'grabbing';
+                return;
+            }
         }
 
-        // Check for triangle drag
-        if (this.state.isTriangleVisible() && this.triangle.startDrag(mousePos.x, mousePos.y)) {
-            this.state.updateInteractionState('draggedTriangle', true);
-            this.canvasManager.canvas.style.cursor = 'grabbing';
-            return;
-        }
-
-        // Check for individual point drag
-        const pointUnderMouse = this.getPointUnderMouse(mousePos);
-        if (pointUnderMouse) {
-            this.state.updateInteractionState('isDragging', true);
-            this.state.updateInteractionState('draggedPoint', pointUnderMouse);
-            this.state.updateInteractionState('mouseOffset', {
-                x: mousePos.x - pointUnderMouse.absoluteX,
-                y: mousePos.y - pointUnderMouse.absoluteY
-            });
-            this.canvasManager.canvas.style.cursor = 'grabbing';
-        } else if (this.horizonLine.isNearLine(mousePos.y)) {
-            this.state.updateInteractionState('draggedHorizon', true);
-            this.state.updateInteractionState('mouseOffset', {
-                x: 0,
-                y: mousePos.y - this.horizonLine.yAbsolute
-            });
-            this.canvasManager.canvas.style.cursor = 'grabbing';
-        }
+        this.currentDraggedObject = null;
     }
+
 
     handleMouseMove(event) {
         const mousePos = this.canvasManager.getMousePosition(event);
-        const interactionState = this.state.getInteractionState();
 
-        if (interactionState.draggedTetrahedron) {
-            this.tetrahedron.drag(
+        if (this.currentDraggedObject) {
+            // Handle dragging
+            this.currentDraggedObject.drag(
                 mousePos.x, mousePos.y,
                 this.canvasManager.canvas.width,
                 this.canvasManager.canvas.height,
-                this.grid
-            );
-            this.updateTriangle(); // This will also update tetrahedron
-            this.draw();
-        } else if (interactionState.draggedTriangle) {
-            this.triangle.drag(
-                mousePos.x, mousePos.y,
-                this.canvasManager.canvas.width,
-                this.canvasManager.canvas.height,
-                this.grid
-            );
-            this.updateTriangle(); // This will also update tetrahedron if shown
-            this.draw();
-        } else if (interactionState.isDragging && interactionState.draggedPoint) {
-            const newX = mousePos.x - interactionState.mouseOffset.x;
-            const newY = mousePos.y - interactionState.mouseOffset.y;
-
-            interactionState.draggedPoint.setPosition(
-                newX, newY,
-                this.canvasManager.canvas.width,
-                this.canvasManager.canvas.height,
-                this.grid
+                this.state.getGridSettings()
             );
 
-            // If dragging vanishing point, keep it on horizon line
-            if (interactionState.draggedPoint.isVanishingPoint) {
-                interactionState.draggedPoint.absoluteY = this.horizonLine.yAbsolute;
-                interactionState.draggedPoint.updateRelativePosition(
-                    this.canvasManager.canvas.width,
-                    this.canvasManager.canvas.height
-                );
-                // Update perspective camera when vanishing point moves
-                this.perspectiveCamera.update(
-                    this.canvasManager.canvas.width,
-                    this.canvasManager.canvas.height,
-                    this.horizonLine,
-                    this.vanishingPoint
-                );
-            }
-
-            // Update triangle when ANY point is moved (A, B, or vanishing point)
-            if (this.state.isTriangleVisible()) {
-                this.updateTriangle();
-            }
-
-            this.draw();
-        } else if (interactionState.draggedHorizon) {
-            const newY = mousePos.y - interactionState.mouseOffset.y;
-            this.horizonLine.setPosition(newY, this.canvasManager.canvas.height);
-
-            // Move vanishing point with horizon line
-            this.vanishingPoint.absoluteY = this.horizonLine.yAbsolute;
-            this.vanishingPoint.updateRelativePosition(
-                this.canvasManager.canvas.width,
-                this.canvasManager.canvas.height
-            );
-
-            // Update perspective camera when horizon moves
-            this.perspectiveCamera.update(
-                this.canvasManager.canvas.width,
-                this.canvasManager.canvas.height,
-                this.horizonLine,
-                this.vanishingPoint
-            );
-
-            // Update triangle when horizon moves
-            if (this.state.isTriangleVisible()) {
-                this.updateTriangle();
-            }
+            // Handle special cases for objects that affect others
+            this.handleDragEffects(this.currentDraggedObject);
 
             this.draw();
         } else {
@@ -419,75 +363,87 @@ class GeometryApp {
         }
     }
 
+    handleDragEffects(draggedObject) {
+        // Handle special effects when certain objects are dragged
+        if (draggedObject === this.vanishingPoint) {
+            // Keep vanishing point on horizon line
+            this.vanishingPoint.absoluteY = this.horizonLine.yAbsolute;
+            this.vanishingPoint.updateRelativePosition(
+                this.canvasManager.canvas.width,
+                this.canvasManager.canvas.height
+            );
+            // Update perspective camera
+            this.perspectiveCamera.update(
+                this.canvasManager.canvas.width,
+                this.canvasManager.canvas.height,
+                this.horizonLine,
+                this.vanishingPoint
+            );
+        } else if (draggedObject === this.horizonLine) {
+            // Move vanishing point with horizon line
+            this.vanishingPoint.absoluteY = this.horizonLine.yAbsolute;
+            this.vanishingPoint.updateRelativePosition(
+                this.canvasManager.canvas.width,
+                this.canvasManager.canvas.height
+            );
+            // Update perspective camera
+            this.perspectiveCamera.update(
+                this.canvasManager.canvas.width,
+                this.canvasManager.canvas.height,
+                this.horizonLine,
+                this.vanishingPoint
+            );
+        }
+
+        // Update triangle when ANY point is moved (A, B, or vanishing point)
+        if (this.state.isTriangleVisible() &&
+        (this.points.includes(draggedObject) ||
+         draggedObject === this.vanishingPoint ||
+         draggedObject === this.horizonLine ||
+         draggedObject === this.triangle ||
+         draggedObject === this.tetrahedron)) {
+        this.updateTriangle();
+    }
+    }
+
     updateCursor(mousePos) {
-        const interactionState = this.state.getInteractionState();
-
-        // Check for tetrahedron drag area first (highest priority)
-        if (this.state.isTetrahedronVisible() && this.tetrahedron.isPointNearTetrahedron(mousePos.x, mousePos.y)) {
-            this.canvasManager.canvas.style.cursor = 'grab';
-            return;
+        // Check each draggable object for cursor type
+        for (const obj of this.draggableObjects) {
+            if (obj.isPointInDragArea(mousePos.x, mousePos.y)) {
+                this.canvasManager.canvas.style.cursor = obj.getCursorType ? obj.getCursorType() : 'grab';
+                return;
+            }
         }
 
-        // Check for triangle drag area
-        if (this.state.isTriangleVisible() && this.triangle.isPointInsideTriangle(mousePos.x, mousePos.y)) {
-            this.canvasManager.canvas.style.cursor = 'grab';
-            return;
-        }
-
-        // Check for individual points
-        const pointUnderMouse = this.getPointUnderMouse(mousePos);
-
-        // Special cursor for point C (not draggable individually)
+        // Special case for calculated points (not draggable individually)
         if (this.state.isTriangleVisible() && this.triangle.pointC &&
             this.triangle.pointC.isPointInside(mousePos.x, mousePos.y)) {
             this.canvasManager.canvas.style.cursor = 'not-allowed';
+            return;
         }
-        // Special cursor for point D (not draggable individually)
-        else if (this.state.isTetrahedronVisible() && this.tetrahedron.pointD &&
-                 this.tetrahedron.pointD.isPointInside(mousePos.x, mousePos.y)) {
+
+        if (this.state.isTetrahedronVisible() && this.tetrahedron.pointD &&
+            this.tetrahedron.pointD.isPointInside(mousePos.x, mousePos.y)) {
             this.canvasManager.canvas.style.cursor = 'not-allowed';
+            return;
         }
-        // Draggable individual points
-        else if (pointUnderMouse) {
-            this.canvasManager.canvas.style.cursor = 'grab';
-        }
-        // Horizon line
-        else if (this.horizonLine.isNearLine(mousePos.y)) {
-            this.canvasManager.canvas.style.cursor = 'ns-resize';
-        }
-        // Default cursor
-        else {
-            this.canvasManager.canvas.style.cursor = 'default';
-        }
+
+        this.canvasManager.canvas.style.cursor = 'default';
     }
 
+
     handleMouseUp(event) {
-        const interactionState = this.state.getInteractionState();
-
-        if (interactionState.draggedTetrahedron) {
-            this.tetrahedron.stopDrag();
-            this.state.updateInteractionState('draggedTetrahedron', false);
+        if (this.currentDraggedObject) {
+            this.currentDraggedObject.stopDrag();
+            this.currentDraggedObject = null;
         }
-
-        if (interactionState.draggedTriangle) {
-            this.triangle.stopDrag();
-            this.state.updateInteractionState('draggedTriangle', false);
-        }
-
-        // Clear all drag state
-        this.state.clearDragState();
         this.canvasManager.canvas.style.cursor = 'default';
     }
 
     handleMouseLeave(event) {
-        const interactionState = this.state.getInteractionState();
-
-        if (interactionState.isDragging) {
-            this.state.updateInteractionState('isDragging', false);
-            this.state.updateInteractionState('draggedPoint', null);
-        }
-        if (interactionState.draggedHorizon) {
-            this.state.updateInteractionState('draggedHorizon', false);
+        if (this.currentDraggedObject) {
+            this.currentDraggedObject.stopDrag();
+            this.currentDraggedObject = null;
         }
         this.canvasManager.canvas.style.cursor = 'default';
     }

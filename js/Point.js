@@ -7,6 +7,10 @@ class Point {
         this.radius = radius;
         this.absoluteX = 0;
         this.absoluteY = 0;
+
+        // Drag state
+        this.isBeingDragged = false;
+        this.dragOffset = { x: 0, y: 0 };
     }
 
     updateAbsolutePosition(canvasWidth, canvasHeight) {
@@ -45,14 +49,51 @@ class Point {
         }
     }
 
+    // Legacy method - keep for backward compatibility but mark as deprecated
     isPointInside(x, y, tolerance = 5) {
+        return this.isPointInDragArea(x, y, tolerance);
+    }
+
+    // Standard Draggable Interface Implementation
+    isPointInDragArea(mouseX, mouseY, tolerance = 5) {
         const distance = Math.sqrt(
-            Math.pow(x - this.absoluteX, 2) +
-            Math.pow(y - this.absoluteY, 2)
+            Math.pow(mouseX - this.absoluteX, 2) +
+            Math.pow(mouseY - this.absoluteY, 2)
         );
         return distance <= this.radius + tolerance;
     }
 
+    startDrag(mouseX, mouseY) {
+        if (this.isPointInDragArea(mouseX, mouseY)) {
+            this.isBeingDragged = true;
+            this.dragOffset = {
+                x: mouseX - this.absoluteX,
+                y: mouseY - this.absoluteY
+            };
+            return true;
+        }
+        return false;
+    }
+
+    drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
+        if (!this.isBeingDragged) return;
+
+        const newX = mouseX - this.dragOffset.x;
+        const newY = mouseY - this.dragOffset.y;
+
+        this.setPosition(newX, newY, canvasWidth, canvasHeight, grid);
+    }
+
+    stopDrag() {
+        this.isBeingDragged = false;
+        this.dragOffset = { x: 0, y: 0 };
+    }
+
+    isDragging() {
+        return this.isBeingDragged;
+    }
+
+    // Keep existing setPosition method - used internally by drag()
     setPosition(x, y, canvasWidth, canvasHeight, gridSettings) {
         // Apply grid snapping
         if (gridSettings.snapX) {
@@ -71,7 +112,6 @@ class Point {
         this.updateRelativePosition(canvasWidth, canvasHeight);
     }
 }
-
 
 class VanishingPoint extends Point {
     constructor(x, y, label = 'VP', color = '#00ff00') {
@@ -106,6 +146,18 @@ class VanishingPoint extends Point {
         }
     }
 
+    // Override drag method to handle vanishing point constraints
+    drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
+        if (!this.isBeingDragged) return;
+
+        const newX = mouseX - this.dragOffset.x;
+        // Keep the same Y position for vanishing point (it moves along horizon)
+        const currentY = this.absoluteY;
+
+        this.setPosition(newX, currentY, canvasWidth, canvasHeight, grid);
+    }
+
+    // Override setPosition to handle vanishing point constraints
     setPosition(x, y, canvasWidth, canvasHeight, gridSettings) {
         // Vanishing point can only move horizontally along the horizon line
         // Keep the same Y position, only update X
@@ -124,3 +176,4 @@ class VanishingPoint extends Point {
         this.updateRelativePosition(canvasWidth, canvasHeight);
     }
 }
+

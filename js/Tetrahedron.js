@@ -11,6 +11,12 @@ class EquilateralTetrahedron {
         this.dragOffset = { x: 0, y: 0 };
     }
 
+    // Standard Draggable Interface Implementation
+    isPointInDragArea(mouseX, mouseY, threshold = 15) {
+        if (!this.isDraggable || !this.pointD || !this.triangle.pointC) return false;
+        return this.isPointNearTetrahedron(mouseX, mouseY, threshold);
+    }
+
     calculateVertexD(canvasWidth, canvasHeight, perspectiveCamera) {
         // Need the 3D coordinates of A, B, C
         if (!this.triangle.point3DA || !this.triangle.point3DB || !this.triangle.point3DC) {
@@ -129,14 +135,14 @@ class EquilateralTetrahedron {
     drawPointD(ctx, showCoordinates = false) {
         if (!this.pointD) return;
 
-        // Draw point D with special styling (not draggable)
+        // Draw point D with special styling (not draggable individually)
         ctx.beginPath();
         ctx.arc(this.pointD.absoluteX, this.pointD.absoluteY, this.pointD.radius, 0, 2 * Math.PI);
 
         ctx.fillStyle = this.pointD.color;
         ctx.fill();
 
-        // Add a border pattern to indicate it's not draggable
+        // Add a border pattern to indicate it's not draggable individually
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 2;
         ctx.setLineDash([3, 3]); // Dashed border
@@ -239,24 +245,21 @@ class EquilateralTetrahedron {
     }
 
     startDrag(mouseX, mouseY) {
-        if (!this.isDraggable || !this.pointD) return false;
+        if (!this.isPointInDragArea(mouseX, mouseY)) return false;
 
-        if (this.isPointNearTetrahedron(mouseX, mouseY)) {
-            this.isBeingDragged = true;
+        this.isBeingDragged = true;
 
-            // Calculate centroid of tetrahedron for drag reference
-            const centroidX = (this.triangle.pointA.absoluteX + this.triangle.pointB.absoluteX +
-                             this.triangle.pointC.absoluteX + this.pointD.absoluteX) / 4;
-            const centroidY = (this.triangle.pointA.absoluteY + this.triangle.pointB.absoluteY +
-                             this.triangle.pointC.absoluteY + this.pointD.absoluteY) / 4;
+        // Calculate centroid of tetrahedron for drag reference
+        const centroidX = (this.triangle.pointA.absoluteX + this.triangle.pointB.absoluteX +
+                         this.triangle.pointC.absoluteX + this.pointD.absoluteX) / 4;
+        const centroidY = (this.triangle.pointA.absoluteY + this.triangle.pointB.absoluteY +
+                         this.triangle.pointC.absoluteY + this.pointD.absoluteY) / 4;
 
-            this.dragOffset = {
-                x: mouseX - centroidX,
-                y: mouseY - centroidY
-            };
-            return true;
-        }
-        return false;
+        this.dragOffset = {
+            x: mouseX - centroidX,
+            y: mouseY - centroidY
+        };
+        return true;
     }
 
     drag(mouseX, mouseY, canvasWidth, canvasHeight, grid) {
@@ -294,28 +297,40 @@ class EquilateralTetrahedron {
 
     stopDrag() {
         this.isBeingDragged = false;
+        this.dragOffset = { x: 0, y: 0 };
     }
 
+    isDragging() {
+        return this.isBeingDragged;
+    }
+
+    // Convenience method to get cursor type for this draggable
+    getCursorType() {
+        return this.isDraggable ? 'grab' : 'not-allowed';
+    }
+
+    // Enhanced draw method with drag indicator
     draw(ctx) {
         if (!this.pointD || !this.triangle.pointC) return;
+
+        // Draw drag indicator when being dragged (behind edges)
+        if (this.isBeingDragged) {
+            this.drawDragIndicator(ctx);
+        }
 
         if (this.showEdges) {
             this.drawTetrahedronEdges(ctx);
         }
-
-        // Draw drag indicator when being dragged
-        if (this.isBeingDragged) {
-            this.drawDragIndicator(ctx);
-        }
     }
 
+    // Enhanced drag indicator
     drawDragIndicator(ctx) {
         if (!this.pointD) return;
 
         // Highlight the tetrahedron edges when dragging
-        ctx.strokeStyle = 'rgba(255, 102, 0, 0.5)';
+        ctx.strokeStyle = 'rgba(255, 102, 0, 0.6)'; // More visible when dragging
         ctx.lineWidth = this.lineWidth + 2;
-        ctx.setLineDash([5, 5]);
+        ctx.setLineDash([8, 4]); // Longer dashes for better visibility
 
         const A = this.triangle.pointA;
         const B = this.triangle.pointB;
@@ -332,5 +347,11 @@ class EquilateralTetrahedron {
         ctx.stroke();
 
         ctx.setLineDash([]);
+
+        // Draw a subtle highlight around point D
+        ctx.fillStyle = 'rgba(255, 102, 0, 0.2)';
+        ctx.beginPath();
+        ctx.arc(D.absoluteX, D.absoluteY, this.pointD.radius + 5, 0, 2 * Math.PI);
+        ctx.fill();
     }
 }
