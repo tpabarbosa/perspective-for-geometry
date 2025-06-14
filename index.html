@@ -1,0 +1,113 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perspective For Geometry</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Perspective For Geometry</h1>
+            <p>This is a simple HTML page that serves as a placeholder for the "Perspective For Geometry" project.</p>
+            <p>Feel free to modify this page as needed.</p>
+            <p>For more information, please refer to the project's documentation or contact the project maintainers.</p>
+        </header>
+        <div class="controls">
+            <div>
+                <div class="control-group">
+                    <h3>Grid Settings</h3>
+                    <div class="control-row">
+                        <label>
+                            <input type="checkbox" id="snapToGridX"> Snap to Grid X-axis
+                        </label>
+                        <label>
+                            <input type="checkbox" id="snapToGridY"> Snap to Grid Y-axis
+                        </label>
+                    </div>
+                    <div class="control-row">
+                        <label>
+                            Grid Size: <input type="range" id="gridSize" min="10" max="100" value="50">
+                            <span id="gridSizeValue">50</span>px
+                        </label>
+                    </div>
+                    <div class="control-row">
+                        <label>
+                            <input type="checkbox" id="showGrid" checked> Show Grid
+                        </label>
+                        <label>
+                            <input type="checkbox" id="showCoordinates"> Show Grid Coordinates
+                        </label>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Triangle Construction</h3>
+                    <div class="control-row">
+                        <label>
+                            <input type="checkbox" id="showTriangle"> Show Equilateral Triangle
+                        </label>
+                        <button id="toggleTriangleSide">Flip Front/Back</button>
+                    </div>
+                    <div class="control-row">
+                        <label>
+                            <input type="checkbox" id="showConstructionLines"> Construction Lines
+                        </label>
+                        <label>
+                            <input type="checkbox" id="showCircumcircle"> Circumcircle
+                        </label>
+                    </div>
+                    <div id="triangleInfo" class="triangle-info" style="display: none;">
+                        <small>Side lengths: <span id="sideLengths"></span></small>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="control-group">
+                    <h3>Tetrahedron Construction</h3>
+                    <div class="control-row">
+                        <label>
+                            <input type="checkbox" id="showTetrahedron"> Show Equilateral Tetrahedron
+                            <small style="color: #666;">(requires triangle)</small>
+                        </label>
+                        <button id="toggleTetrahedronSide">Flip Above/Below</button>
+                    </div>
+                    <div class="control-row">
+                        <label>
+                            <input type="checkbox" id="showTetrahedronEdges" checked> Show Tetrahedron Edges
+                        </label>
+                    </div>
+                    <div id="tetrahedronInfo" class="triangle-info" style="display: none;">
+                        <small>Edge lengths: <span id="tetrahedronEdgeLengths"></span></small>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Drag Controls</h3>
+                    <div class="control-row">
+                        <label>
+                            <input type="checkbox" id="enableTriangleDrag" checked> Enable Triangle Dragging
+                        </label>
+                    </div>
+                    <div class="control-row">
+                        <label>
+                            <input type="checkbox" id="enableTetrahedronDrag" checked> Enable Tetrahedron Dragging
+                            <small style="color: #666;">(requires tetrahedron)</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <main>
+            <canvas id="geometryCanvas" class="main-container">
+                Your browser does not support the HTML5 canvas element.
+            </canvas>
+        </main>
+        <footer>
+            <p>&copy; 2025 Perspective For Geometry. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
